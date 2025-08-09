@@ -1,0 +1,29 @@
+# Chat4 - How to Start
+
+## Easiest Way
+
+1. Install Node.js from https://nodejs.org/
+2. Double-click: go.bat
+3. Open browser to: http://localhost:3000
+
+## Alternative
+
+1. Install Node.js
+2. Double-click: runchat4.bat
+3. Open browser to: http://localhost:3000
+
+## What You Need
+
+- Windows computer
+- Node.js (free download)
+- Internet connection for first run
+
+## Problems?
+
+- If you see "command not found": install Node.js
+- If port 3000 is busy: close other programs
+- If installation fails: check internet connection
+
+## Stop the Service
+
+Just close the black command window

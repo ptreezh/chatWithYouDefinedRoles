@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Character {
+  id                String   @id @default(cuid())
+  name              String
+  systemPrompt      String
+  avatar            String?
+  modelConfig       String?
+  participationLevel Float    @default(0.7)
+  interestThreshold Float    @default(0.5)
+  memoryBankPath    String?
+  category          String   @default("custom")
+  theme             String?
+  filePath          String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  messages Message[]
+}
+
+model ChatRoom {
+  id        String   @id @default(cuid())
+  name      String
+  theme     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id                String   @id @default(cuid())
+  content           String
+  senderType        String   // 'user' | 'character' | 'system'
+  senderId          String?
+  chatRoomId        String
+  contextSummary    String?
+  interestScore     Float?
+  participationReason String?
+  memorySnapshot    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  chatRoom  ChatRoom @relation(fields: [chatRoomId], references: [id])
+  character Character? @relation(fields: [senderId], references: [id])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
