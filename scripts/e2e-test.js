@@ -68,26 +68,34 @@ class E2ETestRunner {
     }
 
     async testOllamaConnection() {
-        this.log('测试 Ollama 连接...');
+        this.log('测试 Ollama 连接（本地模型，无需API密钥）...');
         
         try {
+            // 直接测试Ollama本地服务
             const response = await this.makeRequest({
                 path: '/api/test-api',
                 method: 'POST'
             }, {
                 provider: 'ollama',
-                model: 'llama2'
+                model: 'llama3:latest', // 使用实际下载的模型
+                baseUrl: 'http://localhost:11434',
+                // Ollama本地模型不需要API密钥
+                apiKey: null
             });
 
             if (response.status === 200 && response.data.success) {
-                this.log('Ollama 连接成功', 'success');
+                this.log('Ollama 本地模型连接成功', 'success');
                 return true;
             } else {
-                this.log(`Ollama 连接失败: ${response.data.message || 'Unknown error'}`, 'error');
+                this.log(`Ollama 连接失败: ${response.data.message || '检查模型是否安装：ollama run llama3:latest'}`, 'error');
                 return false;
             }
         } catch (error) {
             this.log(`Ollama 连接异常: ${error.message}`, 'error');
+            this.log('💡 请确保Ollama已安装并运行：', 'info');
+            this.log('1. 安装Ollama: https://ollama.ai', 'info');
+            this.log('2. 运行命令: ollama run llama2', 'info');
+            this.log('3. 验证服务: curl http://localhost:11434/api/tags', 'info');
             return false;
         }
     }

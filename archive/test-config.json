@@ -1,0 +1,34 @@
+{
+  "testTypes": ["ui", "performance", "accessibility", "responsive"],
+  "browsers": ["chrome"],
+  "environments": [
+    {
+      "name": "local",
+      "baseUrl": "http://localhost:3000"
+    }
+  ],
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "recipients": [],
+      "smtp": {
+        "host": "",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "",
+          "pass": ""
+        }
+      }
+    },
+    "webhook": {
+      "enabled": false,
+      "url": "",
+      "headers": {}
+    }
+  },
+  "timeout": 30000,
+  "retries": 2,
+  "parallel": true,
+  "maxConcurrency": 5
+}

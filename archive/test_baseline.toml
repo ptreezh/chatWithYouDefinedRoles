@@ -1,0 +1,200 @@
+# Chat4 测试基线配置文件
+# TestCraft AI - 世界级测试架构师
+# 用于智能测试选择和变更驱动的测试执行
+
+[metadata]
+version = "1.0.0"
+created_at = "2024-12-19T10:00:00Z"
+updated_at = "2024-12-19T10:00:00Z"
+strategy = "change_based_testing"
+
+# 已验证的稳定模块哈希基线
+[stable_modules]
+
+## 角色兴趣匹配算法模块
+[stable_modules.character_interest]
+file_hash = "a1b2c3d4e5f6789012345678901234567890abcd"
+test_file = "tests/unit/character-interest-enhanced.test.ts"
+last_verified = "2024-12-19T09:30:00Z"
+verification_status = "PASSED"
+coverage = 98.5
+test_count = 42
+performance_baseline = "<100ms"
+
+## Socket.IO实时通信模块
+[stable_modules.socket_realtime]
+file_hash = "b2c3d4e5f6789012345678901234567890abcde1"
+test_file = "tests/integration/socket-realtime.test.ts"
+last_verified = "2024-12-19T09:45:00Z"
+verification_status = "PASSED"
+coverage = 95.2
+test_count = 11
+performance_baseline = "<50ms"
+
+## AI服务集成模块
+[stable_modules.ai_service]
+file_hash = "c3d4e5f6789012345678901234567890abcde12"
+test_file = "tests/integration/ai-service-integration.test.ts"
+last_verified = "2024-12-19T10:00:00Z"
+verification_status = "PASSED"
+coverage = 96.8
+test_count = 42
+performance_baseline = "<5s"
+
+## 核心工具模块
+[stable_modules.utils]
+file_hash = "d4e5f6789012345678901234567890abcde1234"
+test_file = "tests/unit/utils.test.ts"
+last_verified = "2024-12-19T08:00:00Z"
+verification_status = "PASSED"
+coverage = 100.0
+test_count = 25
+performance_baseline = "<10ms"
+
+# 测试跳过规则
+[skip_rules]
+
+## 如果文件未变更，跳过对应的测试
+[skip_rules.file_unchanged]
+enabled = true
+rule = "skip_if_hash_unchanged"
+description = "如果源文件哈希值未变更，跳过对应的单元测试"
+
+## 性能测试跳过规则
+[skip_rules.performance]
+enabled = true
+rule = "skip_if_performance_stable"
+description = "如果性能基准未超过阈值，跳过性能测试"
+threshold_ms = 1000
+
+## 集成测试跳过规则
+[skip_rules.integration]
+enabled = false  # 集成测试始终运行
+rule = "always_run"
+description = "集成测试需要每次运行以确保系统稳定性"
+
+# 变更影响分析
+[change_impact]
+
+## 文件到测试的映射
+[change_impact.mappings]
+"src/lib/character-matcher.ts" = ["tests/unit/character-interest-enhanced.test.ts"]
+"src/lib/socket-handler.ts" = ["tests/integration/socket-realtime.test.ts"]
+"src/lib/ai-service.ts" = ["tests/integration/ai-service-integration.test.ts"]
+"src/lib/utils.ts" = ["tests/unit/utils.test.ts"]
+"src/lib/db.ts" = ["tests/integration/database.test.ts"]
+
+## 依赖关系图
+[change_impact.dependencies]
+"character-matcher" = ["utils", "db"]
+"socket-handler" = ["ai-service", "utils"]
+"ai-service" = ["utils", "config"]
+
+# 测试优先级
+[test_priorities]
+
+## 关键业务路径
+[test_priorities.critical]
+tests = [
+  "character-interest-enhanced.test.ts",
+  "socket-realtime.test.ts",
+  "ai-service-integration.test.ts"
+]
+description = "核心业务功能，必须100%通过"
+
+## 高优先级测试
+[test_priorities.high]
+tests = [
+  "api.integration.test.ts",
+  "performance.test.ts",
+  "chat.e2e.test.ts"
+]
+description = "重要功能，失败时需要立即修复"
+
+## 中等优先级测试
+[test_priorities.medium]
+tests = [
+  "accessibility.test.ts",
+  "responsive.test.ts",
+  "security.test.ts"
+]
+description = "用户体验相关，可以延后修复"
+
+# 性能基准
+[performance_baselines]
+
+## 单元测试性能要求
+[performance_baselines.unit]
+max_duration_ms = 100
+target_duration_ms = 50
+acceptable_failure_rate = 0.01
+
+## 集成测试性能要求
+[performance_baselines.integration]
+max_duration_ms = 5000
+target_duration_ms = 2000
+acceptable_failure_rate = 0.05
+
+## E2E测试性能要求
+[performance_baselines.e2e]
+max_duration_ms = 30000
+target_duration_ms = 15000
+acceptable_failure_rate = 0.02
+
+# 质量门禁
+[quality_gates]
+
+## 代码覆盖率要求
+[quality_gates.coverage]
+unit_coverage = 90
+integration_coverage = 85
+e2e_coverage = 100  # 关键路径
+
+## 测试通过率要求
+[quality_gates.pass_rate]
+unit_pass_rate = 100
+integration_pass_rate = 95
+e2e_pass_rate = 100
+
+## 性能要求
+[quality_gates.performance]
+max_test_duration_ms = 30000
+max_memory_usage_mb = 512
+max_cpu_usage_percent = 80
+
+# CI/CD集成配置
+[cicd_integration]
+
+## GitHub Actions配置
+[cicd_integration.github]
+workflow_file = ".github/workflows/test.yml"
+trigger_events = ["push", "pull_request"]
+parallel_jobs = 4
+
+## 测试报告上传
+[cicd_integration.reporting]
+upload_artifacts = true
+report_formats = ["html", "json", "junit"]
+notify_on_failure = true
+
+# 监控和告警
+[monitoring]
+
+## 测试执行监控
+[monitoring.execution]
+enable_metrics = true
+log_level = "INFO"
+timeout_alert_ms = 10000
+
+## 性能监控
+[monitoring.performance]
+track_memory = true
+track_cpu = true
+track_network = true
+
+## 告警配置
+[monitoring.alerts]
+slack_webhook = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+email_recipients = ["test-team@company.com"]
+alert_on_failure = true
+alert_on_performance_degradation = true

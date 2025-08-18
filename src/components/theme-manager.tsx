@@ -2,366 +2,353 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Upload, Trash2, User, Bot, Plus, Folder, FolderOpen, FileText, Settings } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import { AlertCircle, CheckCircle2, Plus, Upload, Trash2, Users } from 'lucide-react'
+import { Theme } from '@prisma/client'
 
-interface Theme {
-  name: string
-  characterCount: number
-  createdAt: Date
-  lastModified: Date
+interface ThemeWithCharacters extends Theme {
+  characters: Array<{
+    id: string
+    name: string
+    category: string
+  }>
 }
 
-interface Character {
-  id: string
-  name: string
-  systemPrompt: string
-  avatar?: string
-  modelConfig?: string
-  participationLevel: number
-  interestThreshold: number
-  isActive: boolean
-  category?: string
-  theme?: string
-}
-
-interface ThemeManagerProps {
-  characters: Character[]
-  onCharactersChange: (characters: Character[]) => void
-  onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void
-  currentTheme?: string
-  onThemeChange?: (theme: string) => void
-}
-
-export default function ThemeManager({ 
-  characters, 
-  onCharactersChange, 
-  onFileUpload, 
-  currentTheme,
-  onThemeChange 
-}: ThemeManagerProps) {
-  const [themes, setThemes] = useState<Theme[]>([])
-  const [selectedTheme, setSelectedTheme] = useState<string>(currentTheme || 'default')
+export function ThemeManager() {
+  const [themes, setThemes] = useState<ThemeWithCharacters[]>([])
+  const [selectedTheme, setSelectedTheme] = useState<string>('default')
   const [newThemeName, setNewThemeName] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [characterTemplates, setCharacterTemplates] = useState<Array<{category: string, files: string[]}>>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<{category: string, file: string} | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     loadThemes()
+    loadCharacterTemplates()
   }, [])
 
   const loadThemes = async () => {
-    console.log('[BUILD DEBUG] Starting themes load...')
     try {
-      console.log('[BUILD DEBUG] Fetching from /api/themes')
       const response = await fetch('/api/themes')
-      console.log('[BUILD DEBUG] /api/themes response status:', response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log('[BUILD DEBUG] /api/themes response data:', data)
         setThemes(data.themes || [])
-      } else {
-        console.log('[BUILD DEBUG] /api/themes response not ok:', response.statusText)
       }
     } catch (error) {
-      console.error('[BUILD DEBUG] Error loading themes:', error)
+      toast({
+        title: "加载主题失败",
+        description: "无法加载主题列表",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const loadCharacterTemplates = async () => {
+    try {
+      const categories = ['professional', 'entertainment', 'education', 'custom']
+      const templates = []
+      
+      for (const category of categories) {
+        const response = await fetch('/api/characters/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category })
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.characters && Array.isArray(data.characters)) {
+            templates.push({
+              category: data.category,
+              files: data.characters.map((char: any) => char.fileName)
+            })
+          }
+        }
+      }
+      
+      setCharacterTemplates(templates)
+    } catch (error) {
+      toast({
+        title: "加载模板失败",
+        description: "无法加载角色模板",
+        variant: "destructive"
+      })
     }
   }
 
   const createTheme = async () => {
-    if (!newThemeName.trim()) return
+    if (!newThemeName.trim()) {
+      toast({
+        title: "主题名称不能为空",
+        description: "请输入主题名称",
+        variant: "destructive"
+      })
+      return
+    }
 
-    setIsLoading(true)
-    console.log('[BUILD DEBUG] Creating theme:', newThemeName)
     try {
-      console.log('[BUILD DEBUG] POST to /api/themes')
       const response = await fetch('/api/themes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ themeName: newThemeName })
       })
-      console.log('[BUILD DEBUG] /api/themes create response status:', response.status)
 
       if (response.ok) {
-        const newTheme = await response.json()
-        console.log('[BUILD DEBUG] /api/themes create response data:', newTheme)
-        setThemes([...themes, newTheme.theme])
+        const result = await response.json()
+        toast({
+          title: "主题创建成功",
+          description: `主题 "${newThemeName}" 已创建`,
+          icon: <CheckCircle2 className="h-4 w-4" />
+        })
         setNewThemeName('')
+        loadThemes()
       } else {
-        console.log('[BUILD DEBUG] /api/themes create response not ok:', response.statusText)
+        const error = await response.json()
+        toast({
+          title: "创建失败",
+          description: error.error || "无法创建主题",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      console.error('[BUILD DEBUG] Error creating theme:', error)
-    } finally {
-      setIsLoading(false)
+      toast({
+        title: "创建失败",
+        description: "网络错误",
+        variant: "destructive"
+      })
     }
   }
 
-  const deleteTheme = async (themeName: string) => {
-    console.log('[BUILD DEBUG] Deleting theme:', themeName)
-    try {
-      console.log('[BUILD DEBUG] DELETE to /api/themes with theme:', themeName)
-      const response = await fetch(`/api/themes?theme=${encodeURIComponent(themeName)}`, {
-        method: 'DELETE'
+  const deleteTheme = async (themeId: string, themeName: string) => {
+    if (themeName === 'default') {
+      toast({
+        title: "无法删除默认主题",
+        description: "默认主题不能被删除",
+        variant: "destructive"
       })
-      console.log('[BUILD DEBUG] /api/themes delete response status:', response.status)
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/themes/${themeId}`, { method: 'DELETE' })
+      if (response.ok) {
+        toast({
+          title: "主题删除成功",
+          description: `主题 "${themeName}" 已删除`,
+          icon: <CheckCircle2 className="h-4 w-4" />
+        })
+        loadThemes()
+      } else {
+        toast({
+          title: "删除失败",
+          description: "无法删除主题",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "删除失败",
+        description: "网络错误",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const createCharacterFromTemplate = async () => {
+    if (!selectedTemplate || !selectedTheme) {
+      toast({
+        title: "选择不完整",
+        description: "请选择模板和主题",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      const response = await fetch('/api/characters/from-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: selectedTemplate.category,
+          fileName: selectedTemplate.file,
+          theme: selectedTheme
+        })
+      })
 
       if (response.ok) {
-        setThemes(themes.filter(t => t.name !== themeName))
-        if (selectedTheme === themeName) {
-          setSelectedTheme('default')
-          onThemeChange?.('default')
-        }
-        console.log('[BUILD DEBUG] Theme deleted successfully')
+        toast({
+          title: "角色创建成功",
+          description: `角色已添加到主题 "${selectedTheme}"`,
+          icon: <CheckCircle2 className="h-4 w-4" />
+        })
+        loadThemes()
+        setSelectedTemplate(null)
       } else {
-        console.log('[BUILD DEBUG] /api/themes delete response not ok:', response.statusText)
+        const error = await response.json()
+        toast({
+          title: "创建失败",
+          description: error.error || "无法创建角色",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      console.error('[BUILD DEBUG] Error deleting theme:', error)
+      toast({
+        title: "创建失败",
+        description: "网络错误",
+        variant: "destructive"
+      })
     }
   }
 
-  const handleThemeSelect = (themeName: string) => {
-    setSelectedTheme(themeName)
-    onThemeChange?.(themeName)
-  }
-
-  const handleThemeUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // 为上传添加主题信息
-    const files = event.target.files
-    if (!files || files.length === 0) return
-
-    const formData = new FormData()
-    Array.from(files).forEach(file => {
-      formData.append('file', file)
-    })
-    
-    if (selectedTheme && selectedTheme !== 'default') {
-      formData.append('theme', selectedTheme)
-    }
-
-    // 模拟表单提交
-    const fakeEvent = {
-      target: {
-        files: files
+  const deleteCharacterFromTheme = async (characterId: string, characterName: string) => {
+    try {
+      const response = await fetch(`/api/characters/${characterId}`, { method: 'DELETE' })
+      if (response.ok) {
+        toast({
+          title: "角色删除成功",
+          description: `角色 "${characterName}" 已删除`,
+          icon: <CheckCircle2 className="h-4 w-4" />
+        })
+        loadThemes()
+      } else {
+        toast({
+          title: "删除失败",
+          description: "无法删除角色",
+          variant: "destructive"
+        })
       }
-    } as any
-
-    // 调用原有的上传处理
-    onFileUpload(fakeEvent)
-  }
-
-  const getThemeCharacters = (themeName: string) => {
-    if (themeName === 'default') {
-      return characters.filter(c => !c.theme || c.theme === 'default')
+    } catch (error) {
+      toast({
+        title: "删除失败",
+        description: "网络错误",
+        variant: "destructive"
+      })
     }
-    return characters.filter(c => c.theme === themeName)
   }
 
   return (
     <div className="space-y-6">
-      {/* 主题选择器 */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Folder className="w-5 h-5" />
-            对话主题管理
-          </CardTitle>
-          <CardDescription>
-            创建和管理对话主题，为主题上传专门的角色
-          </CardDescription>
+          <CardTitle>主题管理</CardTitle>
+          <CardDescription>创建和管理聊天主题</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* 当前主题 */}
             <div>
-              <Label>当前主题</Label>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="text-sm">
-                  {selectedTheme === 'default' ? '默认' : selectedTheme}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  ({getThemeCharacters(selectedTheme).length} 个角色)
-                </span>
+              <Label htmlFor="theme-name">新主题名称</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="theme-name"
+                  value={newThemeName}
+                  onChange={(e) => setNewThemeName(e.target.value)}
+                  placeholder="输入主题名称"
+                />
+                <Button onClick={createTheme}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  创建主题
+                </Button>
               </div>
             </div>
 
-            {/* 主题列表 */}
             <div>
               <Label>选择主题</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2">
-                <Button
-                  variant={selectedTheme === 'default' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleThemeSelect('default')}
-                  className="justify-start"
-                >
-                  <FolderOpen className="w-4 h-4 mr-2" />
-                  默认
-                </Button>
-                {themes.map((theme) => (
-                  <Button
-                    key={theme.name}
-                    variant={selectedTheme === theme.name ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleThemeSelect(theme.name)}
-                    className="justify-between"
-                  >
-                    <span className="truncate">{theme.name}</span>
-                    <Badge variant="secondary" className="text-xs ml-2">
-                      {theme.characterCount}
-                    </Badge>
-                  </Button>
+              <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择主题" />
+                </SelectTrigger>
+                <SelectContent>
+                  {themes.map(theme => (
+                    <SelectItem key={theme.id} value={theme.name}>
+                      {theme.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>选择角色模板</Label>
+              <div className="space-y-2">
+                {characterTemplates.map(category => (
+                  <div key={category.category} className="border rounded p-2">
+                    <h4 className="font-medium mb-2">{category.category}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {category.files.map(file => (
+                        <Button
+                          key={file}
+                          variant={selectedTemplate?.file === file ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedTemplate({ category: category.category, file })}
+                        >
+                          {file.replace('.txt', '')}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* 创建新主题 */}
-            <div className="flex gap-2">
-              <Input
-                placeholder="输入新主题名称"
-                value={newThemeName}
-                onChange={(e) => setNewThemeName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && createTheme()}
-              />
-              <Button 
-                onClick={createTheme}
-                disabled={!newThemeName.trim() || isLoading}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
+            <Button 
+              onClick={createCharacterFromTemplate}
+              disabled={!selectedTemplate || !selectedTheme}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              添加到主题
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* 主题角色管理 */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            主题角色管理
-          </CardTitle>
-          <CardDescription>
-            为当前主题上传和管理角色文件
-          </CardDescription>
+          <CardTitle>主题角色管理</CardTitle>
+          <CardDescription>管理主题中的角色</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upload">上传角色</TabsTrigger>
-              <TabsTrigger value="manage">管理角色</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="upload" className="space-y-4">
-              <div className="space-y-2">
-                <input
-                  type="file"
-                  accept=".txt,.json,.md"
-                  onChange={handleThemeUpload}
-                  className="hidden"
-                  id="theme-file-upload"
-                  multiple
-                  max="20"
-                />
-                <Button 
-                  className="w-full"
-                  onClick={() => document.getElementById('theme-file-upload')?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  上传角色到主题 "{selectedTheme === 'default' ? '默认' : selectedTheme}"
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  支持 .txt, .json, .md 格式，可一次选择多个文件（最多20个）
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="manage" className="space-y-4">
-              <ScrollArea className="h-96">
-                <div className="space-y-3">
-                  {getThemeCharacters(selectedTheme).map((character) => (
-                    <Card key={character.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={character.avatar} />
-                            <AvatarFallback>
-                              {character.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{character.name}</h4>
-                              <Badge variant={character.isActive ? "default" : "secondary"} className="text-xs">
-                                {character.isActive ? '在线' : '离线'}
-                              </Badge>
-                              {character.theme && (
-                                <Badge variant="outline" className="text-xs">
-                                  {character.theme}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              阈值: {character.interestThreshold} | 积极性: {character.participationLevel}
-                            </p>
-                          </div>
+          <div className="space-y-4">
+            {themes.map(theme => (
+              <div key={theme.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-semibold">{theme.name}</h3>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => deleteTheme(theme.id, theme.name)}
+                    disabled={theme.name === 'default'}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  {(!theme.characters || theme.characters.length === 0) ? (
+                    <p className="text-sm text-muted-foreground">暂无角色</p>
+                  ) : (
+                    (theme.characters ?? []).map(character => (
+                      <div key={character.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                        <div>
+                          <span className="font-medium">{character.name}</span>
+                          <span className="text-sm text-muted-foreground ml-2">({character.category})</span>
                         </div>
                         <Button
+                          variant="ghost"
                           size="sm"
-                          variant="destructive"
-                          onClick={() => {
-                            // 这里应该调用删除角色的API
-                            const updatedCharacters = characters.filter(c => c.id !== character.id)
-                            onCharactersChange(updatedCharacters)
-                          }}
+                          onClick={() => deleteCharacterFromTheme(character.id, character.name)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </Card>
-                  ))}
-                  {getThemeCharacters(selectedTheme).length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Bot className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm mb-2">该主题暂无角色</p>
-                      <p className="text-xs">请上传角色文件到当前主题</p>
-                    </div>
+                    ))
                   )}
                 </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* 主题统计 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>主题统计</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-4 border rounded-lg">
-              <div className="text-2xl font-bold">{themes.length}</div>
-              <div className="text-sm text-muted-foreground">自定义主题</div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="text-2xl font-bold">{getThemeCharacters('default').length}</div>
-              <div className="text-sm text-muted-foreground">默认角色</div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="text-2xl font-bold">
-                {themes.reduce((sum, theme) => sum + theme.characterCount, 0)}
               </div>
-              <div className="text-sm text-muted-foreground">主题角色总数</div>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>

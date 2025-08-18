@@ -11,9 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Bot, User, Upload, MessageSquare, Settings, Trash2, Key, Users } from 'lucide-react'
-import ApiConfig from '@/components/api-config-v2'
+import ApiConfigV2 from '@/components/api-config-v2'
 import CharacterManager from '@/components/character-manager'
-import ThemeManager from '@/components/theme-manager'
+import { ThemeManager } from '@/components/theme-manager'
 
 interface Character {
   id: string
@@ -54,6 +54,10 @@ export default function Home() {
     ollamaConfigured: false,
     isDemo: false
   })
+
+  // 死循环检测相关状态
+  const [recentReplies, setRecentReplies] = useState<string[]>([])
+  const [temperatureOverride, setTemperatureOverride] = useState<number | null>(null)
 
   // 初始化聊天室
   useEffect(() => {
@@ -112,6 +116,16 @@ export default function Home() {
     initializeChat()
     checkApiStatus()
   }, [])
+
+  // 重置温度参数，避免影响后续对话
+  useEffect(() => {
+    if (temperatureOverride !== null && !isProcessing) {
+      const timer = setTimeout(() => {
+        setTemperatureOverride(null)
+      }, 5000) // 5秒后重置温度
+      return () => clearTimeout(timer)
+    }
+  }, [temperatureOverride, isProcessing])
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !chatRoom) return
@@ -230,15 +244,21 @@ export default function Home() {
           body: JSON.stringify({
             message: topic,
             chatRoomId: chatRoom.id,
-            characterId: character.id
+            characterId: character.id,
+            temperature: temperatureOverride || undefined
           }),
         })
 
         if (responseResponse.ok) {
           const responseData = await responseResponse.json()
+          let finalResponse = responseData.response
+          
+          // 应用死循环检测和替换
+          finalResponse = checkAndReplaceDeadLoop(finalResponse)
+          
           const characterMessage: Message = {
             id: Date.now().toString() + '_' + character.id,
-            content: responseData.response,
+            content: finalResponse,
             senderType: 'character',
             senderId: character.id,
             character: character,
@@ -393,23 +413,61 @@ export default function Home() {
     })
   }
 
+  // 死循环检测和替换功能
+  const checkAndReplaceDeadLoop = (reply: string): string => {
+    const antiLoopResponses = [
+      "不要鹦鹉学舌啦！",
+      "无聊吧你们",
+      "复读机来了，风紧扯呼~",
+      "哎，换点创意的玩法行吗",
+      "这个话题我们已经聊过了，换个角度如何？",
+      "感觉我们在原地打转，来点新思路吧！",
+      "重复是学习的敌人，让我们突破思维的牢笼",
+      "同样的回答听三遍，我的AI芯片都要过热了"
+    ]
+
+    // 更新最近回复记录
+    setRecentReplies(prev => {
+      const newReplies = [...prev, reply].slice(-3) // 保留最近3次
+      
+      // 检查是否连续三次相同
+      if (newReplies.length === 3 && newReplies.every(r => r === newReplies[0])) {
+        // 随机选择替换回复
+        const randomReply = antiLoopResponses[Math.floor(Math.random() * antiLoopResponses.length)]
+        
+        // 随机调整温度（模拟模型参数变化）
+        const newTemp = 0.7 + (Math.random() - 0.5) * 0.4 // 0.5-0.9范围
+        setTemperatureOverride(newTemp)
+        
+        // 清空历史记录，重新开始计数
+        return []
+      }
+      
+      return newReplies
+    })
+
+    return reply
+  }
+
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 antialiased text-gray-800 dark:text-gray-200">
       {/* 侧边栏 */}
-      <div className={`w-80 border-r bg-card flex flex-col ${sidebarOpen ? 'flex' : 'hidden'} lg:flex`}>
+      <div className={`w-80 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static absolute z-20 h-full`}>
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Bot className="w-5 h-5" />
             虚拟角色聊天室
           </h2>
           <Button 
-            variant="ghost" 
-            size="sm"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            ×
-          </Button>
+              variant="ghost" 
+              size="sm"
+              className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </Button>
         </div>
 
         <Tabs defaultValue="characters" className="flex-1">
@@ -555,7 +613,7 @@ export default function Home() {
                   <DialogHeader>
                     <DialogTitle>API配置</DialogTitle>
                   </DialogHeader>
-                  <ApiConfig />
+                  <ApiConfigV2 />
                 </DialogContent>
               </Dialog>
               <p className="text-xs text-muted-foreground mt-1">
@@ -586,9 +644,9 @@ export default function Home() {
       </div>
 
       {/* 主聊天区域 */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-card rounded-lg shadow-lg overflow-hidden border border-border">
         {/* 聊天头部 */}
-        <div className="p-4 border-b flex-shrink-0">
+        <div className="p-4 border-b border-border bg-card-foreground text-card-foreground flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button 
@@ -628,7 +686,7 @@ export default function Home() {
         </div>
 
         {/* 消息区域 */}
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4 custom-scrollbar bg-background">
           <div className="space-y-4 max-w-4xl mx-auto">
             {messages.filter(m => m.senderType !== 'system').map((message) => (
               <div
@@ -638,7 +696,7 @@ export default function Home() {
                 }`}
               >
                 {message.senderType !== 'user' && (
-                  <Avatar className="flex-shrink-0">
+                  <Avatar className="flex-shrink-0 shadow-sm">
                     <AvatarImage src={message.character?.avatar} />
                     <AvatarFallback>
                       {message.senderType === 'system' ? '🤖' : message.character?.name?.charAt(0)}
@@ -646,7 +704,7 @@ export default function Home() {
                   </Avatar>
                 )}
                 <div
-                  className={`max-w-[70%] sm:max-w-[80%] rounded-lg p-3 ${
+                  className={`max-w-[70%] sm:max-w-[80%] rounded-lg p-3 shadow-md ${
                     message.senderType === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : message.senderType === 'system'
@@ -661,7 +719,7 @@ export default function Home() {
                       </div>
                       {message.interestScore && (
                         <Badge variant="outline" className="text-xs">
-                          兴趣: {Math.round(message.interestScore * 100)}%
+                          兴趣: {Math.round(message.interestScore * 100)}%在
                         </Badge>
                       )}
                     </div>
@@ -672,7 +730,7 @@ export default function Home() {
                   </div>
                 </div>
                 {message.senderType === 'user' && (
-                  <Avatar className="flex-shrink-0">
+                  <Avatar className="flex-shrink-0 shadow-sm">
                     <AvatarFallback>
                       <User className="w-4 h-4" />
                     </AvatarFallback>
@@ -691,7 +749,7 @@ export default function Home() {
         </ScrollArea>
 
         {/* 输入区域 */}
-        <div className="p-4 border-t flex-shrink-0">
+        <div className="p-4 border-t border-border bg-card-foreground flex-shrink-0">
           <div className="max-w-4xl mx-auto space-y-2">
             <div className="flex gap-2">
               <Input
@@ -700,11 +758,12 @@ export default function Home() {
                 placeholder={characters.filter(c => c.isActive).length === 0 ? "请先上传角色文件..." : "输入消息..."}
                 onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
                 disabled={isLoading || isProcessing || characters.filter(c => c.isActive).length === 0}
-                className="flex-1"
+                className="flex-1 p-2 rounded-lg border border-input bg-background text-foreground focus-visible:ring-offset-0 focus-visible:ring-transparent shadow-sm"
               />
               <Button 
                 onClick={handleSendMessage} 
                 disabled={isLoading || isProcessing || !inputMessage.trim() || characters.filter(c => c.isActive).length === 0}
+                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
               >
                 {isLoading ? '发送中...' : '发送'}
               </Button>

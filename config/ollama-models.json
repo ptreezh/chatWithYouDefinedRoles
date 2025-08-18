@@ -1,0 +1,41 @@
+{
+  "available_models": [
+    {
+      "name": "llama3:latest",
+      "description": "Meta Llama 3 - 通用对话模型，平衡性能",
+      "size": "4.7GB",
+      "language": "多语言",
+      "use_case": "日常对话、通用任务"
+    },
+    {
+      "name": "qwen3:4b",
+      "description": "通义千问3 4B - 中文优化，轻量级",
+      "size": "2.6GB",
+      "language": "中文为主",
+      "use_case": "中文对话、文本处理"
+    },
+    {
+      "name": "deepseek-coder:6.7b-instruct",
+      "description": "DeepSeek Coder - 编程专用模型",
+      "size": "3.8GB",
+      "language": "多语言",
+      "use_case": "代码生成、编程问答"
+    },
+    {
+      "name": "mistral:instruct",
+      "description": "Mistral Instruct - 英文对话优化",
+      "size": "4.1GB",
+      "language": "英文为主",
+      "use_case": "英文对话、文本分析"
+    },
+    {
+      "name": "qwen:7b-chat",
+      "description": "通义千问7B Chat - 中文对话模型",
+      "size": "4.5GB",
+      "language": "中文为主",
+      "use_case": "中文聊天、内容创作"
+    }
+  ],
+  "current_model": "llama3:latest",
+  "notes": "根据您的Ollama安装，已自动配置为使用实际下载的模型"
+}

@@ -2,6 +2,28 @@ import { Character, Message } from '@prisma/client'
 import { MemoryBankManager, KeyMemory, ConversationHistory } from './memory-bank'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import path from 'path'
+import { calculateSimilarity } from './utils';
+
+async function getOllamaModels(): Promise<string[]> {
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  try {
+    const response = await fetch(`${ollamaBaseUrl}/api/tags`);
+    if (!response.ok) {
+      console.error(`Failed to fetch Ollama models: ${response.statusText}`);
+      return [];
+    }
+    const data = await response.json();
+    const models = data.models.map((m: any) => m.name);
+    const filteredModels = models.filter((modelName: string) => {
+      const lowerCaseName = modelName.toLowerCase();
+      return !lowerCaseName.includes('embed') && !lowerCaseName.includes('embedding') && !lowerCaseName.includes('code') && !lowerCaseName.includes('coder');
+    });
+    return filteredModels;
+  } catch (error) {
+    console.error('Error fetching Ollama models:', error);
+    return [];
+  }
+}
 
 export interface ModelConfig {
   provider: 'zai' | 'openai' | 'anthropic' | 'custom' | 'ollama'
@@ -18,32 +40,45 @@ export interface InterestEvaluation {
   shouldParticipate: boolean
 }
 
-// 读取API配置
+// 读取API配置（优先环境变量，其次用户配置文件，最后默认值）
 function getApiConfig() {
   try {
-    const configPath = path.join(process.cwd(), 'api-config-user.json')
-    if (existsSync(configPath)) {
+    const rootConfigPath = path.join(process.cwd(), 'api-config-user.json')
+    const altConfigPath = path.join(process.cwd(), 'config', 'api-config-user.json')
+    const configPath = existsSync(rootConfigPath)
+      ? rootConfigPath
+      : existsSync(altConfigPath)
+        ? altConfigPath
+        : ''
+
+    if (configPath) {
       const configData = readFileSync(configPath, 'utf-8')
-      const config = JSON.parse(configData)
-      
-      // 更新到环境变量
-      if (config.zaiApiKey) {
-        process.env.ZAI_API_KEY = config.zaiApiKey
+      const fileConfig = JSON.parse(configData)
+
+      // 仅在环境变量未设置时，从配置文件注入到环境变量，避免覆盖部署环境
+      if (fileConfig.zaiApiKey && !process.env.ZAI_API_KEY) {
+        process.env.ZAI_API_KEY = fileConfig.zaiApiKey
       }
-      if (config.openaiApiKey) {
-        process.env.OPENAI_API_KEY = config.openaiApiKey
+      if (fileConfig.openaiApiKey && !process.env.OPENAI_API_KEY) {
+        process.env.OPENAI_API_KEY = fileConfig.openaiApiKey
       }
-      
-      // 如果配置了ZAI API密钥，同时创建.z-ai-config文件供ZAI SDK使用
-      if (config.zaiApiKey && config.zaiApiKey !== 'demo-key-for-testing') {
+      if (fileConfig.ollamaBaseUrl && !process.env.OLLAMA_BASE_URL) {
+        process.env.OLLAMA_BASE_URL = fileConfig.ollamaBaseUrl
+      }
+      if (fileConfig.ollamaModel && !process.env.OLLAMA_MODEL) {
+        process.env.OLLAMA_MODEL = fileConfig.ollamaModel
+      }
+
+      // 如果配置了有效的ZAI API密钥，写入.z-ai-config供SDK使用（优先使用env中的有效值）
+      const effectiveZaiKey = process.env.ZAI_API_KEY || fileConfig.zaiApiKey
+      if (effectiveZaiKey && effectiveZaiKey !== 'demo-key-for-testing') {
         const zaiConfigPath = path.join(process.cwd(), '.z-ai-config')
         const zaiConfig = {
           baseUrl: 'https://api.z.ai/v1',
-          apiKey: config.zaiApiKey,
-          chatId: config.chatId || '',
-          userId: config.userId || ''
+          apiKey: effectiveZaiKey,
+          chatId: fileConfig.chatId || '',
+          userId: fileConfig.userId || ''
         }
-        
         try {
           writeFileSync(zaiConfigPath, JSON.stringify(zaiConfig, null, 2))
           console.log('ZAI配置文件已创建:', zaiConfigPath)
@@ -51,16 +86,16 @@ function getApiConfig() {
           console.error('创建ZAI配置文件失败:', writeError)
         }
       }
-      
+
       console.log('ChatService读取API配置:', {
-        zaiApiKey: config.zaiApiKey ? '已设置' : '未设置',
-        openaiApiKey: config.openaiApiKey ? '已设置' : '未设置',
-        isDemo: config.zaiApiKey === 'demo-key-for-testing',
-        zaiConfigured: config.zaiApiKey && config.zaiApiKey !== 'demo-key-for-testing',
-        openaiConfigured: config.openaiApiKey && config.openaiApiKey !== 'demo-openai-key-for-testing'
+        zaiApiKey: (process.env.ZAI_API_KEY || fileConfig.zaiApiKey) ? '已设置' : '未设置',
+        openaiApiKey: (process.env.OPENAI_API_KEY || fileConfig.openaiApiKey) ? '已设置' : '未设置',
+        ollamaBaseUrl: process.env.OLLAMA_BASE_URL || fileConfig.ollamaBaseUrl || '默认',
+        ollamaModel: process.env.OLLAMA_MODEL || fileConfig.ollamaModel || '默认',
+        source: configPath.endsWith('config\\api-config-user.json') ? 'config/api-config-user.json' : 'api-config-user.json'
       })
-      
-      return config
+
+      return fileConfig
     }
   } catch (error) {
     console.error('Error reading API config:', error)
@@ -70,11 +105,18 @@ function getApiConfig() {
 
 export class ChatService {
   private memoryBankManager: MemoryBankManager
+  private availableOllamaModels: string[] = []
+  private recentResponses: string[] = [] // 用于存储最近的回复，进行重复检测
 
   constructor() {
     this.memoryBankManager = new MemoryBankManager()
-    // 初始化时读取API配置
+    // 初始化时读取API配置（不会覆盖已有环境变量）
     getApiConfig()
+    this.initOllamaModels()
+  }
+
+  private async initOllamaModels() {
+    this.availableOllamaModels = await getOllamaModels()
   }
 
   async evaluateInterest(
@@ -280,7 +322,10 @@ export class ChatService {
     character: Character,
     message: string,
     context: string,
-    recentMessages: Message[]
+    recentMessages: Message[],
+    temperature?: number,
+    forceRegenerate: boolean = false, // 新增参数，指示是否强制重新生成
+    newPromptPrefix: string = '' // 新增参数，用于添加新的提示前缀
   ): Promise<{ response: string; memorySnapshot: any }> {
     // 获取角色的Memory Bank
     const memoryBank = await this.memoryBankManager.getMemoryBank(character.id)
@@ -301,9 +346,20 @@ export class ChatService {
 
     // 解析模型配置
     const modelConfig = this.parseModelConfig(character.modelConfig)
+    if (temperature !== undefined) {
+      modelConfig.temperature = temperature
+    }
 
-    // 构建回复生成的提示
-    const responsePrompt = `
+    let response = ''
+    let finalResponsePrompt = '';
+    let shouldRegenerate = forceRegenerate;
+    let memorySnapshot: any = null; // ensure accessible after loop
+
+    do {
+      shouldRegenerate = false; // 每次循环开始时重置
+
+      // 构建回复生成的提示
+      let currentResponsePrompt = `
 你是一个名为${character.name}的AI角色。请基于以下信息生成回复：
 
 角色设定：
@@ -315,7 +371,13 @@ ${memoryBank.personalSummary}
 相关记忆：
 ${relevantMemories.map(mem => `- ${mem.content}`).join('\n')}
 
-最近对话历史：
+完整对话历史：
+${recentMessages.reverse().map(msg => `${msg.senderType === 'user' ? '用户' : character.name}: ${msg.content} (话题: ${msg.topic || '未知'})`).join('\n')}
+
+随机选择的对话线索：
+${this.getRandomMessageContext(recentMessages, character.name)}
+
+最近对话历史（记忆）：
 ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')}
 
 当前话题：${this.extractTopic(message)}
@@ -330,37 +392,43 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
 5. 回复要自然、流畅，符合对话场景
 
 请直接回复内容，不要包含任何解释或思考过程。
-`
+`;
 
-    let response = ''
-    try {
-      // 根据配置调用不同的AI服务
-      switch (modelConfig.provider) {
+      if (newPromptPrefix) {
+        currentResponsePrompt = `${newPromptPrefix} ${currentResponsePrompt}`;
+        newPromptPrefix = ''; // 使用后清空，避免下次重复添加
+      }
+      finalResponsePrompt = currentResponsePrompt;
+
+      try {
+        // 根据配置调用不同的AI服务
+        switch (modelConfig.provider) {
         case 'zai':
-          response = await this.callZAI(responsePrompt, modelConfig)
+          response = await this.callZAI(finalResponsePrompt, modelConfig)
           break
         case 'openai':
-          response = await this.callOpenAI(responsePrompt, modelConfig)
+          response = await this.callOpenAI(finalResponsePrompt, modelConfig)
           break
         case 'anthropic':
-          response = await this.callAnthropic(responsePrompt, modelConfig)
+          response = await this.callAnthropic(finalResponsePrompt, modelConfig)
           break
         case 'ollama':
-          response = await this.callOllama(responsePrompt, modelConfig)
+          response = await this.callOllama(finalResponsePrompt, modelConfig)
           break
         case 'custom':
-          response = await this.callCustomAPI(responsePrompt, modelConfig)
+          response = await this.callCustomAPI(finalResponsePrompt, modelConfig)
           break
         default:
-          response = await this.callZAI(responsePrompt, modelConfig)
+          response = await this.callZAI(finalResponsePrompt, modelConfig)
       }
     } catch (error) {
       console.error('Error generating response:', error)
-      throw new Error(`生成回复失败: ${error.message}`)
+      // Fallback: generate a local demo response to avoid breaking the chat flow
+      response = this.generateDemoResponse(finalResponsePrompt)
     }
 
     // 创建记忆快照
-    const memorySnapshot = {
+    memorySnapshot = {
       relevantMemories,
       recentHistory,
       personalityTraits: memoryBank.personalityTraits,
@@ -370,7 +438,58 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
     // 更新角色的记忆银行
     await this.updateCharacterMemory(character.id, message, response, context)
 
-    return { response, memorySnapshot }
+    // 添加到最近回复列表，并进行重复检测
+    this.recentResponses.push(response);
+    const SIMILARITY_THRESHOLD = 0.6; // 相似度阈值，降低以提高敏感度
+    const REPEAT_CHECK_COUNT = 3; // 检查最近3次回复
+
+    if (this.recentResponses.length >= REPEAT_CHECK_COUNT) {
+      const recent = this.recentResponses.slice(-REPEAT_CHECK_COUNT);
+      let isRepeating = true;
+      for (let i = 0; i < recent.length - 1; i++) {
+        const similarity = calculateSimilarity(recent[i], recent[i + 1]);
+        if (similarity < SIMILARITY_THRESHOLD) {
+          isRepeating = false;
+          break;
+        }
+      }
+
+      if (isRepeating) {
+        console.warn('检测到连续重复回复，尝试更改上下文并重新生成。');
+        // 更改上下文，例如添加一个随机的引导语或改变话题
+        const randomContexts = [
+          '换个角度思考一下，', 
+          '我们来聊聊别的吧，', 
+          '你觉得这个怎么样？', 
+          '这让我想到了一个问题：'
+        ];
+        const newContext = randomContexts[Math.floor(Math.random() * randomContexts.length)];
+        // 清空 recentResponses，避免再次触发
+        this.recentResponses = [];
+        // 准备重新生成回复，将新的上下文添加到原始提示词中
+        // 这里不直接返回，而是让外部逻辑（或递归调用）处理重新生成
+        const result = { response: `(系统检测到重复，已尝试调整话题) ${response}`, memorySnapshot, forceRegenerate: true, newPromptPrefix: newContext };
+        if (result.forceRegenerate) {
+          shouldRegenerate = true;
+          // 如果需要重新生成，则不更新记忆和 recentResponses，直接进入下一次循环
+          continue; 
+        }
+      }
+    }
+
+    } while (shouldRegenerate);
+
+    return { response, memorySnapshot: memorySnapshot };
+  }
+
+  private getRandomMessageContext(messages: Message[], characterName: string): string {
+    if (messages.length === 0) {
+      return '无可用对话线索。'
+    }
+    const lastFiveMessages = messages.slice(Math.max(0, messages.length - 5));
+    const randomIndex = Math.floor(Math.random() * lastFiveMessages.length);
+    const selectedMessage = lastFiveMessages[randomIndex];
+    return `${selectedMessage.senderType === 'user' ? '用户' : characterName}: ${selectedMessage.content} (话题: ${selectedMessage.topic || '未知'})`;
   }
 
   private async updateCharacterMemory(
@@ -414,8 +533,8 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
   private parseModelConfig(configString?: string): ModelConfig {
     const defaultConfig: ModelConfig = {
       provider: 'ollama', // 默认使用本地Ollama模型
-      model: 'llama3:latest',
-      baseUrl: 'http://127.0.0.1:11434',
+      model: process.env.OLLAMA_MODEL || 'llama3:latest',
+      baseUrl: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434',
       temperature: 0.7,
       maxTokens: 2048
     }
@@ -434,37 +553,27 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
     try {
       console.log('ChatService.callZAI 开始调用...')
       
-      // 重新读取API配置以确保使用最新的密钥
+      // 读取配置（不覆盖已有环境变量）并确定最终API Key
       const apiConfig = getApiConfig()
+      const zaiApiKey = process.env.ZAI_API_KEY || apiConfig.zaiApiKey
       
       console.log('ZAI调用前的配置检查:', {
         envZaiKey: process.env.ZAI_API_KEY ? '已设置' : '未设置',
         configZaiKey: apiConfig.zaiApiKey ? '已设置' : '未设置',
-        isDemo: process.env.ZAI_API_KEY === 'demo-key-for-testing',
-        finalKey: apiConfig.zaiApiKey || process.env.ZAI_API_KEY
+        isDemo: zaiApiKey === 'demo-key-for-testing',
+        finalKeyPrefix: zaiApiKey ? zaiApiKey.substring(0, 8) + '...' : '未设置'
       })
       
       // 检查是否为演示模式
-      if (process.env.ZAI_API_KEY === 'demo-key-for-testing') {
-        console.log('检测到演示模式，返回模拟回复')
+      if (zaiApiKey === 'demo-key-for-testing' || !zaiApiKey) {
+        console.log('检测到演示模式或未配置真实密钥，返回模拟回复')
         return this.generateDemoResponse(prompt);
       }
 
-      // 使用配置中的API密钥，优先使用配置文件中的
-      const zaiApiKey = apiConfig.zaiApiKey || process.env.ZAI_API_KEY
-      if (!zaiApiKey || zaiApiKey === 'demo-key-for-testing') {
-        console.log('ZAI API密钥未配置或为演示密钥')
-        throw new Error('ZAI API key not configured')
+      // 确保环境变量可供SDK读取（如果尚未设置）
+      if (!process.env.ZAI_API_KEY) {
+        process.env.ZAI_API_KEY = zaiApiKey
       }
-
-      console.log('准备调用真实ZAI API...')
-      console.log('实际使用的API密钥:', zaiApiKey.substring(0, 8) + '...')
-      
-      // 确保环境变量设置正确
-      process.env.ZAI_API_KEY = zaiApiKey
-      console.log('环境变量设置完成:', {
-        envKey: process.env.ZAI_API_KEY ? process.env.ZAI_API_KEY.substring(0, 8) + '...' : '未设置'
-      })
       
       // 使用ZAI SDK调用大模型
       const ZAI = (await import('z-ai-web-dev-sdk')).default
@@ -503,7 +612,7 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
       
       // 如果ZAI失败，尝试使用OpenAI作为备用
       const apiConfig = getApiConfig()
-      const openaiApiKey = apiConfig.openaiApiKey || process.env.OPENAI_API_KEY
+      const openaiApiKey = process.env.OPENAI_API_KEY || apiConfig.openaiApiKey
       if (openaiApiKey && openaiApiKey !== 'demo-openai-key-for-testing') {
         try {
           console.log('尝试使用OpenAI作为备用...')
@@ -604,7 +713,17 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
   private async callOllama(prompt: string, config: ModelConfig): Promise<string> {
     try {
       const baseUrl = config.baseUrl || 'http://127.0.0.1:11434'
-      const model = config.model || 'llama3:latest'
+      let model = config.model || process.env.OLLAMA_MODEL; // Changed from 'llama3:latest'
+
+      // 如果没有指定模型，则随机选择一个对话模型
+      if (!model) {
+        if (this.availableOllamaModels.length > 0) {
+          model = this.availableOllamaModels[Math.floor(Math.random() * this.availableOllamaModels.length)];
+          console.log(`随机选择Ollama模型: ${model}`);
+        } else {
+          throw new Error('未找到可用的Ollama对话模型。');
+        }
+      }
       
       console.log('Calling Ollama API:', { baseUrl, model })
       
@@ -614,14 +733,14 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: model,
+          model: model, // Use the potentially new 'model' variable
           prompt: prompt,
           stream: false,
           options: {
             temperature: config.temperature || 0.7,
             num_predict: config.maxTokens || 2048,
-            top_p: 0.9,
-            repeat_penalty: 1.1
+            top_p: 0.9, // Preserve from original
+            repeat_penalty: 1.1 // Preserve from original
           }
         })
       })

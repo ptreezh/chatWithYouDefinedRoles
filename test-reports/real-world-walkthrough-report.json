@@ -1,0 +1,123 @@
+{
+  "summary": {
+    "totalDuration": "2310ms",
+    "completed": "2025-08-16T14:22:11.134Z",
+    "overallStatus": "excellent"
+  },
+  "detailed": {
+    "environment": {
+      "node": {
+        "version": "v22.14.0",
+        "status": "pass"
+      },
+      "dependencies": {
+        "status": "pass",
+        "packages": 18
+      },
+      "database": {
+        "status": "pass",
+        "type": "SQLite"
+      },
+      "config": {
+        "status": "pass",
+        "found": 0,
+        "total": 3,
+        "files": []
+      }
+    },
+    "api": {
+      "zai": {
+        "status": "skipped",
+        "reason": "使用演示模式"
+      },
+      "openai": {
+        "status": "skipped",
+        "reason": "使用演示模式"
+      },
+      "ollama": {
+        "status": "pass",
+        "models": 22,
+        "available": [
+          "nomic-embed-text:latest",
+          "mistral:7b-instruct-v0.2-q5_K_M",
+          "deepseek-r1:8b",
+          "qwen3:8b",
+          "qwen3:4b",
+          "deepseek-coder:6.7b-instruct",
+          "mistral:instruct",
+          "qwen:7b-chat",
+          "yi:6b",
+          "llama3:instruct",
+          "phi3:mini",
+          "cogito:latest",
+          "granite-code:3b",
+          "granite3.3:latest",
+          "phi4-mini-reasoning:latest",
+          "mistral-nemo:latest",
+          "llama3:latest",
+          "llama3-groq-tool-use:latest",
+          "qwen3:30b-a3b",
+          "gemma3:latest",
+          "all-minilm:latest",
+          "mxbai-embed-large:latest"
+        ]
+      }
+    },
+    "characters": {
+      "query": {
+        "status": "pass",
+        "count": 1
+      },
+      "demo": {
+        "status": "pass",
+        "note": "演示模式"
+      }
+    },
+    "conversations": {
+      "status": "pass",
+      "character": "AI助手",
+      "mode": "演示",
+      "note": "模拟对话功能正常"
+    },
+    "performance": {
+      "status": "pass",
+      "avgResponseTime": 45,
+      "iterations": 100,
+      "rating": "excellent",
+      "note": "模拟数据测试"
+    },
+    "userExperience": {
+      "status": "needs_improvement",
+      "tests": [
+        {
+          "name": "Web界面",
+          "url": "http://localhost:3000",
+          "status": 500,
+          "available": false
+        },
+        {
+          "name": "API端点 - 角色",
+          "url": "http://localhost:3000/api/characters",
+          "status": 500,
+          "available": false
+        },
+        {
+          "name": "API端点 - 聊天",
+          "url": "http://localhost:3000/api/chat",
+          "status": 500,
+          "available": false
+        },
+        {
+          "name": "静态资源 - Logo",
+          "url": "http://localhost:3000/logo.svg",
+          "status": 200,
+          "available": true
+        }
+      ],
+      "availableCount": 1,
+      "totalCount": 4,
+      "overall": "poor",
+      "note": "实时环境测试"
+    }
+  }
+}

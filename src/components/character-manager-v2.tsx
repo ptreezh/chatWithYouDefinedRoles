@@ -1,16 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Upload, Trash2, User, Bot, Plus, Folder, FolderOpen, FileText } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { Slider } from '@/components/ui/slider'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertCircle, CheckCircle2, Trash2, Edit, Plus, Users } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 interface Character {
   id: string
@@ -78,34 +79,81 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
     interestThreshold: 0.3,
     category: 'custom'
   })
+  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [characterToDelete, setCharacterToDelete] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const handleDeleteCharacter = async (characterId: string) => {
-    console.log('[BUILD DEBUG] Deleting character:', characterId)
     try {
-      console.log('[BUILD DEBUG] DELETE to /api/characters/${characterId}')
       const response = await fetch(`/api/characters/${characterId}`, {
         method: 'DELETE'
       })
-      console.log('[BUILD DEBUG] /api/characters/${characterId} delete response status:', response.status)
 
       if (response.ok) {
         const updatedCharacters = characters.filter(c => c.id !== characterId)
         onCharactersChange(updatedCharacters)
-        console.log('[BUILD DEBUG] Character deleted successfully')
+        toast({
+          title: "删除成功",
+          description: "角色已成功删除",
+          duration: 3000,
+        })
       } else {
-        console.log('[BUILD DEBUG] /api/characters/${characterId} delete response not ok:', response.statusText)
+        const error = await response.json()
+        toast({
+          title: "删除失败",
+          description: error.message || "删除角色时出错",
+          variant: "destructive",
+          duration: 3000,
+        })
       }
     } catch (error) {
-      console.error('[BUILD DEBUG] Error deleting character:', error)
+      console.error('Error deleting character:', error)
+      toast({
+        title: "删除失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedCharacters.length === 0) return
+
+    try {
+      const promises = selectedCharacters.map(id => 
+        fetch(`/api/characters/${id}`, { method: 'DELETE' })
+      )
+      
+      const results = await Promise.allSettled(promises)
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      
+      if (successful > 0) {
+        const updatedCharacters = characters.filter(c => !selectedCharacters.includes(c.id))
+        onCharactersChange(updatedCharacters)
+        setSelectedCharacters([])
+        
+        toast({
+          title: "批量删除成功",
+          description: `成功删除了 ${successful} 个角色`,
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "批量删除失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
   }
 
   const handleUpdateCharacter = async () => {
     if (!selectedCharacter) return
 
-    console.log('[BUILD DEBUG] Updating character:', selectedCharacter.id)
     try {
-      console.log('[BUILD DEBUG] PUT to /api/characters/${selectedCharacter.id}')
       const response = await fetch(`/api/characters/${selectedCharacter.id}`, {
         method: 'PUT',
         headers: {
@@ -113,22 +161,37 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
         },
         body: JSON.stringify(editForm)
       })
-      console.log('[BUILD DEBUG] /api/characters/${selectedCharacter.id} update response status:', response.status)
 
       if (response.ok) {
+        const updatedCharacter = await response.json()
         const updatedCharacters = characters.map(c => 
-          c.id === selectedCharacter.id 
-            ? { ...c, ...editForm }
-            : c
+          c.id === selectedCharacter.id ? updatedCharacter : c
         )
         onCharactersChange(updatedCharacters)
         setSelectedCharacter(null)
-        console.log('[BUILD DEBUG] Character updated successfully')
+        
+        toast({
+          title: "更新成功",
+          description: "角色信息已成功更新",
+          duration: 3000,
+        })
       } else {
-        console.log('[BUILD DEBUG] /api/characters/${selectedCharacter.id} update response not ok:', response.statusText)
+        const error = await response.json()
+        toast({
+          title: "更新失败",
+          description: error.message || "更新角色时出错",
+          variant: "destructive",
+          duration: 3000,
+        })
       }
     } catch (error) {
-      console.error('[BUILD DEBUG] Error updating character:', error)
+      console.error('Error updating character:', error)
+      toast({
+        title: "更新失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
   }
 
@@ -144,10 +207,7 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
   }
 
   const handleUseTemplate = async (template: CharacterTemplate) => {
-    console.log('[BUILD DEBUG] Using template:', template.file, 'from category:', template.category)
     try {
-      // 模拟从模板文件创建角色
-      console.log('[BUILD DEBUG] POST to /api/characters/from-template')
       const response = await fetch(`/api/characters/from-template`, {
         method: 'POST',
         headers: {
@@ -158,18 +218,41 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
           fileName: template.file
         })
       })
-      console.log('[BUILD DEBUG] /api/characters/from-template response status:', response.status)
 
       if (response.ok) {
         const newCharacter = await response.json()
-        console.log('[BUILD DEBUG] /api/characters/from-template response data:', newCharacter)
         onCharactersChange([...characters, newCharacter])
+        toast({
+          title: "创建成功",
+          description: `角色 "${newCharacter.name}" 已创建`,
+          duration: 3000,
+        })
       } else {
-        console.log('[BUILD DEBUG] /api/characters/from-template response not ok:', response.statusText)
+        const error = await response.json()
+        toast({
+          title: "创建失败",
+          description: error.message || "创建角色时出错",
+          variant: "destructive",
+          duration: 3000,
+        })
       }
     } catch (error) {
-      console.error('[BUILD DEBUG] Error creating character from template:', error)
+      console.error('Error creating character from template:', error)
+      toast({
+        title: "创建失败",
+        description: "网络错误，请稍后重试",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
+  }
+
+  const toggleCharacterSelection = (characterId: string) => {
+    setSelectedCharacters(prev => 
+      prev.includes(characterId) 
+        ? prev.filter(id => id !== characterId)
+        : [...prev, characterId]
+    )
   }
 
   const getCategoryName = (category: string) => {
@@ -221,6 +304,23 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
           )
         })}
       </div>
+
+      {/* 批量删除按钮 */}
+      {selectedCharacters.length > 0 && (
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">
+            已选择 {selectedCharacters.length} 个角色
+          </span>
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            批量删除
+          </Button>
+        </div>
+      )}
 
       <Tabs defaultValue="manage" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -278,6 +378,12 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
                     <Card key={character.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedCharacters.includes(character.id)}
+                            onChange={() => toggleCharacterSelection(character.id)}
+                            className="rounded border-gray-300"
+                          />
                           <Avatar>
                             <AvatarImage src={character.avatar} />
                             <AvatarFallback>
@@ -310,7 +416,10 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDeleteCharacter(character.id)}
+                            onClick={() => {
+                              setCharacterToDelete(character.id)
+                              setDeleteDialogOpen(true)
+                            }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -426,6 +535,51 @@ export default function CharacterManager({ characters, onCharactersChange, onFil
             <div className="flex gap-2">
               <Button onClick={handleUpdateCharacter}>保存更改</Button>
               <Button variant="outline" onClick={() => setSelectedCharacter(null)}>取消</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除确认对话框 */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              <p>
+                {selectedCharacters.length > 0 
+                  ? `确定要删除选中的 ${selectedCharacters.length} 个角色吗？`
+                  : "确定要删除这个角色吗？"
+                }
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setDeleteDialogOpen(false)
+                  setCharacterToDelete(null)
+                }}
+              >
+                取消
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  if (selectedCharacters.length > 0) {
+                    handleBatchDelete()
+                  } else if (characterToDelete) {
+                    handleDeleteCharacter(characterToDelete)
+                  }
+                  setDeleteDialogOpen(false)
+                  setCharacterToDelete(null)
+                }}
+              >
+                确认删除
+              </Button>
             </div>
           </div>
         </DialogContent>

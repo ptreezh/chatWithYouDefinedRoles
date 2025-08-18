@@ -5,7 +5,7 @@ import { MemoryBankManager } from '@/lib/memory-bank'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, chatRoomId, characterId } = await request.json()
+    const { message, chatRoomId, characterId, temperature } = await request.json()
 
     if (!message || !chatRoomId || !characterId) {
       return NextResponse.json({ 
@@ -31,19 +31,8 @@ export async function POST(request: NextRequest) {
       take: 10
     })
 
-    // 构建上下文
-    const context = recentMessages
-      .reverse()
-      .map(msg => {
-        if (msg.senderType === 'user') {
-          return `用户: ${msg.content}`
-        } else if (msg.senderType === 'character') {
-          return `${character.name}: ${msg.content}`
-        } else {
-          return `系统: ${msg.content}`
-        }
-      })
-      .join('\n')
+    // 将用户消息作为直接上下文，完整的对话历史将在chat-service中处理
+    const context = message;
 
     // 生成回复
     const chatService = new ChatService()
@@ -51,7 +40,10 @@ export async function POST(request: NextRequest) {
       character,
       message,
       context,
-      recentMessages
+      recentMessages,
+      temperature,
+      null, // forceRegenerate 初始为 null
+      '' // newPromptPrefix 初始为空字符串
     )
 
     // 保存消息到数据库

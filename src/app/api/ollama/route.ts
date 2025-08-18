@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Ollama API配置
-const OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
+// Ollama API配置（优先环境变量）
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'llama3:latest'
 
 export async function GET() {
   try {
@@ -24,7 +25,9 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       models: models,
-      count: models.length
+      count: models.length,
+      baseUrl: OLLAMA_BASE_URL,
+      defaultModel: DEFAULT_MODEL
     })
     
   } catch (error) {
@@ -32,7 +35,7 @@ export async function GET() {
     
     // 如果Ollama不可用，返回一些默认模型
     const defaultModels = [
-      { name: 'llama3:latest', modified_at: new Date().toISOString(), size: 0 },
+      { name: DEFAULT_MODEL, modified_at: new Date().toISOString(), size: 0 },
       { name: 'qwen:7b-chat', modified_at: new Date().toISOString(), size: 0 },
       { name: 'mistral:instruct', modified_at: new Date().toISOString(), size: 0 }
     ]
@@ -42,7 +45,9 @@ export async function GET() {
       error: error instanceof Error ? error.message : 'Unknown error',
       models: defaultModels,
       count: defaultModels.length,
-      message: 'Ollama服务不可用，显示默认模型列表'
+      message: 'Ollama服务不可用，显示默认模型列表',
+      baseUrl: OLLAMA_BASE_URL,
+      defaultModel: DEFAULT_MODEL
     })
   }
 }
@@ -51,7 +56,9 @@ export async function POST(request: NextRequest) {
   try {
     const { model, prompt, options = {} } = await request.json()
     
-    if (!model || !prompt) {
+    const finalModel = model || DEFAULT_MODEL
+
+    if (!finalModel || !prompt) {
       return NextResponse.json({
         error: 'Model and prompt are required'
       }, { status: 400 })
@@ -64,7 +71,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: model,
+        model: finalModel,
         prompt: prompt,
         stream: false,
         options: {
@@ -84,17 +91,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       response: data.response,
-      model: model,
+      model: finalModel,
       done: data.done,
       total_duration: data.total_duration,
-      load_duration: data.load_duration
+      load_duration: data.load_duration,
+      baseUrl: OLLAMA_BASE_URL
     })
     
   } catch (error) {
     console.error('Ollama生成失败:', error)
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      baseUrl: OLLAMA_BASE_URL,
+      defaultModel: DEFAULT_MODEL
     }, { status: 500 })
   }
 }

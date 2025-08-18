@@ -6,11 +6,14 @@ import path from 'path'
 
 export async function POST(request: NextRequest) {
   try {
-    const { category, fileName } = await request.json()
+    const { category, fileName, theme } = await request.json()
     
     if (!category || !fileName) {
       return NextResponse.json({ error: 'Category and fileName are required' }, { status: 400 })
     }
+
+    // 使用指定的主题或默认为'default'
+    const targetTheme = theme || 'default'
 
     // 构建角色文件路径
     const characterFilePath = path.join(process.cwd(), 'characters', 'categories', category, fileName)
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
     // 提取角色名称（使用文件名）
     const characterName = path.basename(fileName, path.extname(fileName))
     
-    // 创建角色记录
+    // 创建角色记录，包含主题信息
     const character = await db.character.create({
       data: {
         name: characterName,
@@ -36,7 +39,9 @@ export async function POST(request: NextRequest) {
         participationLevel: 0.7,
         interestThreshold: 0.3,
         isActive: true,
-        category: category
+        category: category,
+        theme: targetTheme,
+        filePath: targetTheme === 'default' ? `${category}/${fileName}` : `themes/${targetTheme}/${fileName}`
       }
     })
 
@@ -58,6 +63,7 @@ export async function POST(request: NextRequest) {
       interestThreshold: character.interestThreshold,
       isActive: character.isActive,
       category: character.category,
+      theme: character.theme,
       createdAt: character.createdAt
     })
 

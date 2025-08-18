@@ -1,0 +1,122 @@
+{
+  "timestamp": "2025-08-14T03:44:36.241Z",
+  "changed_files": [
+    "package-lock.json",
+    "package.json",
+    "scripts/e2e-test.js",
+    "server.ts",
+    "src/app/api/health/route.ts",
+    "src/app/globals.css",
+    "src/testing/core/TestScheduler.ts",
+    "src/testing/index.ts",
+    "tsconfig.json",
+    "TEST-ARCHITECTURE-README.md",
+    "TESTING_PLAN.md",
+    "complete-validation.js",
+    "config/ollama-config.json",
+    "config/ollama-models.json",
+    "core-validation-test.js",
+    "docs/automated-testing.md",
+    "e2e-validation-checklist.md",
+    "go.bat",
+    "jest.config.js",
+    "jest.config.unit.js",
+    "ollama-setup-guide.md",
+    "playwright-report/index.html",
+    "playwright.config.ts",
+    "reports/unit-tests/index.html",
+    "reports/unit-tests/jest-html-reporters-attach/index/index.js",
+    "reports/unit-tests/jest-html-reporters-attach/index/result.js",
+    "run-tests.js",
+    "scripts/automated-testing-system.js",
+    "scripts/automated-usability-test.js",
+    "scripts/change-driven-test-selector.js",
+    "scripts/project-analyzer.js",
+    "scripts/run-complete-tests.js",
+    "scripts/simplified-testing-system.js",
+    "scripts/test-master-runner.js",
+    "scripts/test-ollama-direct.js",
+    "src/testing/config/ConfigManager.ts",
+    "src/testing/core/ErrorHandler.ts",
+    "src/testing/core/ReportGenerator.ts",
+    "src/testing/core/TestExecutionEngine.ts",
+    "src/testing/issues/IssueTracker.ts",
+    "src/testing/pages/ChatPage.ts",
+    "src/testing/reporting/ReportGenerator.ts",
+    "src/testing/suites/E2ETestSuite.ts",
+    "start-and-test-server.js",
+    "start-server.js",
+    "start-unicode.bat",
+    "test-agent-tasklist.json",
+    "test-architecture-masterplan.md",
+    "test-config.json",
+    "test-db-connection.js",
+    "test-execution-tasklist.md",
+    "test-reports/e2e-test-1755140000247.json",
+    "test-reports/e2e-test-1755140010742.json",
+    "test-results/.last-run.json",
+    "test-strategy-masterplan.json",
+    "test_baseline.toml",
+    "tests/accessibility/accessibility.test.ts",
+    "tests/complete-suite.test.ts",
+    "tests/e2e/chat.e2e.test.ts",
+    "tests/integration/ai-service-integration.test.ts",
+    "tests/integration/socket-realtime.test.ts",
+    "tests/performance/performance.test.ts",
+    "tests/responsive/responsive.test.ts",
+    "tests/setup/unit-setup.ts",
+    "tests/simple.test.ts",
+    "tests/unit/character-interest-enhanced.test.ts",
+    "tests/unit/character-interest.test.ts"
+  ],
+  "selected_tests": {
+    "unit": [
+      "tests/unit/"
+    ],
+    "integration": [
+      "tests/integration/"
+    ],
+    "e2e": [
+      "tests/e2e/"
+    ],
+    "performance": [],
+    "chaos": []
+  },
+  "execution_plan": {
+    "parallel": true,
+    "batches": [],
+    "estimated_duration": 2,
+    "commands": [
+      {
+        "type": "unit",
+        "tests": [
+          "tests/unit/"
+        ],
+        "command": "jest tests/unit/ --coverage",
+        "estimated_duration": 30
+      },
+      {
+        "type": "integration",
+        "tests": [
+          "tests/integration/"
+        ],
+        "command": "jest tests/integration/ --testTimeout=30000",
+        "estimated_duration": 30
+      },
+      {
+        "type": "e2e",
+        "tests": [
+          "tests/e2e/"
+        ],
+        "command": "playwright test tests/e2e/",
+        "estimated_duration": 120
+      }
+    ]
+  },
+  "summary": {
+    "total_affected": 3,
+    "selected_count": 3,
+    "skipped_count": 0,
+    "optimization_ratio": 100
+  }
+}
