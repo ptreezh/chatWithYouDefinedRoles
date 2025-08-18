@@ -93,5 +93,30 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.12",
     "ts-jest": "^29.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/chat4.git"
+  },
+  "keywords": [
+    "ai-chat",
+    "ollama",
+    "nextjs",
+    "typescript",
+    "local-llm",
+    "privacy-focused",
+    "open-source",
+    "character-chat",
+    "ai-assistant"
+  ],
+  "author": "Chat4 Contributors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-username/chat4/issues"
+  },
+  "homepage": "https://github.com/your-username/chat4#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

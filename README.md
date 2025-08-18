@@ -1,274 +1,198 @@
-# Chat4 - Virtual Character Chatroom with Local LLM Support
+# Chat4 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-4.x-blue.svg)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15.x-black.svg)](https://nextjs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-18%2B-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![Ollama](https://img.shields.io/badge/Ollama-supported-red.svg)](https://ollama.ai/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/your-username/chat4/blob/main/CONTRIBUTING.md)
+[![Discord](https://img.shields.io/badge/Discord-Join-7289DA.svg)](https://discord.gg/)
+[![GitHub Issues](https://img.shields.io/github/issues/your-username/chat4.svg)](https://github.com/your-username/chat4/issues)
 
-A sophisticated virtual character chatroom application that supports multiple AI providers, with special emphasis on local LLM integration through Ollama. Built with Next.js, TypeScript, and modern web technologies.
+一个现代化的开源AI聊天应用，支持多个AI提供商，包括Ollama本地LLM集成。
 
-## 🌟 Features
+## 🌟 核心特性
 
-### 🤖 Multi-AI Provider Support
-- **Local LLM**: Full Ollama integration for offline, private AI conversations
-- **Cloud Services**: Z.ai and OpenAI as fallback options
-- **Smart Fallback**: Automatic switching between providers based on availability
+### 🔒 隐私优先设计
+- **本地LLM支持**：通过Ollama运行完全本地的AI模型
+- **数据控制**：所有对话数据存储在用户本地
+- **无依赖运行**：可选择完全离线运行，无需外部API
 
-### 🎭 Advanced Character Management
-- **Theme-based Organization**: Create conversation themes with dedicated characters
-- **Dynamic Character Upload**: Support for .txt, .json, and .md character files
-- **Category System**: Pre-defined categories (Professional, Entertainment, Education, Custom)
-- **Memory System**: Persistent character memories and conversation history
+### 🤖 多AI提供商支持
+- **Ollama集成**：支持Llama 2、Code Llama、Mistral等本地模型
+- **OpenAI兼容**：支持GPT-3.5、GPT-4等商业模型
+- **Claude集成**：Anthropic Claude模型支持
+- **灵活配置**：轻松切换不同AI提供商
 
-### 🧪 Comprehensive Testing
-- **End-to-End Testing**: Complete conversation flow validation
-- **Performance Testing**: Load testing and benchmarking
-- **Health Monitoring**: Real-time system health checks
-- **Automated Test Suite**: Full test automation with detailed reporting
+### 👥 高级角色管理
+- **虚拟角色**：创建和管理多个AI角色
+- **角色记忆**：持久化角色对话历史和记忆
+- **自定义配置**：为每个角色设置不同的AI模型和参数
+- **场景模式**：支持不同对话场景和上下文
 
-### 🚀 Modern Architecture
-- **Next.js 15**: Latest App Router with server components
-- **TypeScript**: Full type safety and better developer experience
-- **Prisma**: Modern database toolkit with SQLite support
-- **Tailwind CSS**: Utility-first CSS framework
-- **shadcn/ui**: High-quality UI components
+### 🧪 企业级测试
+- **完整测试套件**：单元测试、集成测试、端到端测试
+- **性能测试**：负载测试和响应时间监控
+- **自动化测试**：GitHub Actions持续集成
+- **代码质量**：ESLint、Prettier代码规范
 
-## 🚀 Quick Start
+### 🎨 现代化架构
+- **Next.js 15**：最新React框架，支持App Router
+- **TypeScript**：完整的类型安全和开发体验
+- **Prisma ORM**：类型安全的数据库访问
+- **Tailwind CSS**：现代化样式系统
+- **实时通信**：Socket.IO实时消息同步
 
-### Prerequisites
-- Node.js 18.0 or higher
-- npm or yarn package manager
-- Ollama (for local LLM support, optional)
+## 🚀 快速开始
 
-### Installation
+### 📋 系统要求
+- **Node.js**: 18.0 或更高版本
+- **npm**: 最新版本
+- **Git**: 用于版本控制
+- **Ollama**: 可选，用于本地LLM支持
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/chat4.git
-   cd chat4
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-### Quick Setup with Ollama
-
-1. **Install and start Ollama**
-   ```bash
-   # Follow instructions at https://ollama.ai/
-   ollama serve
-   ```
-
-2. **Download a model**
-   ```bash
-   ollama pull llama2
-   ```
-
-3. **Run the automated deployment**
-   ```bash
-   npm run deploy
-   ```
-
-## 📖 Documentation
-
-### User Guides
-- [Getting Started](docs/user-guides/getting-started.md)
-- [Character Management](docs/user-guides/character-management.md)
-- [Theme System](docs/user-guides/theme-system.md)
-- [API Configuration](docs/user-guides/api-configuration.md)
-
-### Development
-- [Development Setup](docs/development/development-setup.md)
-- [Architecture Overview](docs/development/architecture.md)
-- [Code Style Guidelines](docs/development/code-style.md)
-- [Testing Guidelines](docs/development/testing.md)
-- [Contributing Guide](CONTRIBUTING.md)
-
-### Deployment
-- [Deployment Options](docs/deployment/deployment-options.md)
-- [Local Deployment](docs/deployment/local-deployment.md)
-- [Production Deployment](docs/deployment/production-deployment.md)
-- [Docker Deployment](docs/deployment/docker-deployment.md)
-
-### API Reference
-- [REST API](docs/api/rest-api.md)
-- [WebSocket API](docs/api/websocket-api.md)
-- [Configuration Endpoints](docs/api/configuration.md)
-- [Error Handling](docs/api/error-handling.md)
-
-## 🧪 Testing
-
-The project includes a comprehensive test suite:
+### 🔧 一键安装
 
 ```bash
-# Run all tests
+# 克隆项目
+git clone https://github.com/your-username/chat4.git
+cd chat4
+
+# 安装依赖
+npm install
+
+# 环境配置
+cp .env.example .env
+
+# 启动开发服务器
+npm run dev
+```
+
+### 🏠 本地LLM配置
+
+1. **安装Ollama**
+   ```bash
+   # macOS/Linux
+   curl -fsSL https://ollama.ai/install.sh | sh
+   
+   # Windows
+   # 下载安装程序从 https://ollama.ai
+   ```
+
+2. **下载模型**
+   ```bash
+   ollama pull llama2
+   ollama pull mistral
+   ollama pull codellama
+   ```
+
+3. **配置环境变量**
+   ```bash
+   # 编辑 .env 文件
+   NEXT_PUBLIC_USE_OLLAMA=true
+   OLLAMA_HOST=http://localhost:11434
+   ```
+
+## 📚 文档
+
+### 📖 用户指南
+- [🚀 快速开始](docs/user-guide/quick-start.md)
+- [🤖 AI提供商配置](docs/user-guide/ai-providers.md)
+- [👥 角色管理](docs/user-guide/character-management.md)
+- [⚙️ 系统设置](docs/user-guide/settings.md)
+
+### 🔧 开发者文档
+- [🏗️ 架构设计](docs/developer/architecture.md)
+- [🧪 测试指南](docs/developer/testing.md)
+- [📝 API文档](docs/developer/api.md)
+- [🚀 部署指南](docs/developer/deployment.md)
+
+### 🚀 部署指南
+- [🐳 Docker部署](docs/deployment/docker.md)
+- [☁️ 云部署](docs/deployment/cloud.md)
+- [🏠 本地部署](docs/deployment/local.md)
+- [🔧 环境配置](docs/deployment/environment.md)
+
+## 🧪 测试
+
+### 运行测试
+```bash
+# 运行所有测试
 npm run test:all
 
-# Run specific test types
-npm run test:e2e        # End-to-end tests
-npm run test:performance # Performance tests
-npm run test:basic       # Basic functionality tests
-
-# Health check
-npm run test:health
+# 运行特定测试
+npm run test:e2e        # 端到端测试
+npm run test:performance # 性能测试
+npm run test:basic       # 基础功能测试
 ```
 
-### Test Coverage
-- ✅ Unit Tests
-- ✅ Integration Tests
-- ✅ End-to-End Tests
-- ✅ Performance Tests
-- ✅ Health Monitoring
+### 代码质量
+```bash
+# 代码检查
+npm run lint
+npm run type-check
 
-## 🏗️ Architecture
-
-### Frontend
-- **Next.js 15** with App Router
-- **React 18** with Hooks
-- **TypeScript** for type safety
-- **Tailwind CSS** for styling
-- **shadcn/ui** component library
-
-### Backend
-- **Next.js API Routes** for serverless functions
-- **Prisma ORM** with SQLite database
-- **Socket.io** for real-time communication
-- **Memory Bank** system for character persistence
-
-### AI Integration
-- **Ollama SDK** for local LLM support
-- **Z.ai SDK** for cloud AI services
-- **OpenAI API** integration
-- **Smart provider selection and fallback**
-
-### Data Flow
-```
-User Input → Interest Evaluation → Character Selection → LLM Processing → Response Generation → Memory Update → Display
+# 格式化
+npm run format
 ```
 
-## 🎯 Use Cases
+## 🛠️ 技术栈
 
-### 1. **Personal AI Assistant**
-- Create specialized AI characters for different tasks
-- Maintain conversation history and context
-- Use local LLMs for privacy and offline access
+### 前端
+- **Next.js 15**: React框架
+- **TypeScript**: 类型安全
+- **Tailwind CSS**: 样式框架
+- **shadcn/ui**: 组件库
+- **Socket.IO**: 实时通信
 
-### 2. **Educational Platform**
-- Create AI tutors for different subjects
-- Theme-based character organization
-- Interactive learning experiences
+### 后端
+- **Next.js API Routes**: API端点
+- **Prisma ORM**: 数据库访问
+- **PostgreSQL**: 主数据库
+- **Redis**: 缓存和会话
 
-### 3. **Customer Support**
-- Specialized support characters
-- Conversation history for context
-- Multi-language support
+### AI集成
+- **Ollama**: 本地LLM
+- **OpenAI API**: GPT模型
+- **Anthropic API**: Claude模型
+- **LangChain**: AI应用框架
 
-### 4. **Research Assistant**
-- AI research assistants with specialized knowledge
-- Academic theme organization
-- Citation and reference management
+## 📊 项目状态
 
-## 🔧 Configuration
+- ✅ **核心功能**: 基础聊天、角色管理、本地LLM
+- ✅ **测试覆盖**: 单元测试、集成测试、端到端测试
+- ✅ **文档**: 用户指南、开发者文档、API文档
+- 🔄 **持续改进**: 性能优化、新功能开发
 
-### Environment Variables
-```env
-NODE_ENV=development
-PORT=3000
-DATABASE_URL=file:./db/custom.db
+## 🤝 贡献
 
-# AI Provider Configuration
-ZAI_API_KEY=your_zai_key
-OPENAI_API_KEY=your_openai_key
+我们欢迎所有形式的贡献！请查看我们的[贡献指南](CONTRIBUTING.md)了解如何参与项目。
 
-# Ollama Configuration (Local LLM)
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama2
+### 贡献方式
+- 🐛 [报告Bug](https://github.com/your-username/chat4/issues)
+- 💡 [功能请求](https://github.com/your-username/chat4/issues)
+- 📖 [文档改进](https://github.com/your-username/chat4/issues)
+- 🔧 [代码贡献](CONTRIBUTING.md)
 
-# Security
-JWT_SECRET=your_jwt_secret
-SESSION_SECRET=your_session_secret
-```
+## 📄 许可证
 
-### Character Configuration
-Characters can be configured through:
-- **File Upload**: .txt, .json, or .md files
-- **API Endpoints**: RESTful character management
-- **Database**: Direct database operations
+本项目采用 [MIT 许可证](LICENSE) 开源。
 
-## 📊 Performance
+## 🙏 致谢
 
-### Benchmarks
-- **Response Time**: 2-5 seconds (depending on model and hardware)
-- **Concurrent Users**: Supports 10-20 concurrent users
-- **Memory Usage**: Optimized for production environments
-- **Database Performance**: SQLite with proper indexing
+- **Next.js团队**: 提供优秀的React框架
+- **Ollama团队**: 让本地LLM运行变得简单
+- **开源社区**: 所有贡献者和用户
 
-### Optimization
-- **Response Caching**: Intelligent caching for frequently asked questions
-- **Database Optimization**: Proper indexing and query optimization
-- **Asset Optimization**: Optimized images and static assets
-- **Code Splitting**: Automatic code splitting and lazy loading
+## 📞 社区支持
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-- Follow the established code style
-- Use TypeScript for type safety
-- Write meaningful commit messages
-- Update documentation as needed
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) for the amazing React framework
-- [Ollama](https://ollama.ai/) for local LLM support
-- [shadcn/ui](https://ui.shadcn.com/) for the beautiful UI components
-- [Tailwind CSS](https://tailwindcss.com/) for the utility-first CSS framework
-- [Prisma](https://prisma.io/) for the modern database toolkit
-
-## 📞 Support
-
-If you have any questions or need help, please:
-
-1. Check the [documentation](docs/)
-2. Search existing [issues](https://github.com/your-username/chat4/issues)
-3. Create a new issue if needed
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=your-username/chat4&type=Date)](https://star-history.com/#your-username/chat4&Date)
+- 💬 [Discord社区](https://discord.gg/)
+- 🐦 [Twitter](https://twitter.com/)
+- 📧 [邮件联系](mailto:contact@chat4.com)
 
 ---
 
 <div align="center">
-  <strong>Chat4 - Where Virtual Characters Meet Local AI</strong>
+  <p><strong>Chat4</strong> - 让AI对话更简单、更私密、更强大</p>
+  <p>⭐ 如果这个项目对你有帮助，请给我们一个星标！</p>
 </div>
