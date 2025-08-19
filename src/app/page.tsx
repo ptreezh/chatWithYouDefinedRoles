@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,6 +58,19 @@ export default function Home() {
   // 死循环检测相关状态
   const [recentReplies, setRecentReplies] = useState<string[]>([])
   const [temperatureOverride, setTemperatureOverride] = useState<number | null>(null)
+  
+  // 自动滚动相关
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // 自动滚动到最新消息
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+  
+  // 监听消息变化，自动滚动
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   // 初始化聊天室
   useEffect(() => {
@@ -644,25 +657,10 @@ export default function Home() {
       </div>
 
       {/* 主聊天区域 */}
-      <div className="flex-1 flex flex-col min-w-0 bg-card rounded-lg shadow-lg overflow-hidden border border-border">
-        {/* 聊天头部 */}
-        <div className="p-4 border-b border-border bg-card-foreground text-card-foreground flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className={`${sidebarOpen ? 'lg:hidden' : ''}`}
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                <Bot className="w-4 h-4" />
-              </Button>
-              <h1 className="text-xl font-semibold flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 hidden sm:block" />
-                聊天室
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
+      <div className="flex-1 flex flex-col relative">
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold">聊天室</h2>
+            <div className="flex gap-2 mt-2">
               <Badge variant="outline">
                 {characters.filter(c => c.isActive).length} 个角色在线
               </Badge>
@@ -683,92 +681,64 @@ export default function Home() {
               )}
             </div>
           </div>
-        </div>
-
-        {/* 消息区域 */}
-        <ScrollArea className="flex-1 p-4 custom-scrollbar bg-background">
-          <div className="space-y-4 max-w-4xl mx-auto">
-            {messages.filter(m => m.senderType !== 'system').map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 ${
-                  message.senderType === 'user' ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                {message.senderType !== 'user' && (
-                  <Avatar className="flex-shrink-0 shadow-sm">
-                    <AvatarImage src={message.character?.avatar} />
-                    <AvatarFallback>
-                      {message.senderType === 'system' ? '🤖' : message.character?.name?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                <div
-                  className={`max-w-[70%] sm:max-w-[80%] rounded-lg p-3 shadow-md ${
-                    message.senderType === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : message.senderType === 'system'
-                      ? 'bg-muted text-muted-foreground'
-                      : 'bg-secondary text-secondary-foreground'
-                  }`}
-                >
-                  {message.senderType !== 'user' && message.senderType !== 'system' && (
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="text-xs opacity-70 font-medium">
-                        {message.character?.name}
+          
+          <ScrollArea className="flex-1 p-4 messages-container scroll-container" id="messages-container">
+            <div className="space-y-4">
+              {messages.filter(m => m.senderType !== 'system').map((message, index) => (
+                    <div key={message.id || `message-${index}`} className={`flex ${message.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs lg:max-w-md xl:max-w-lg px-4 py-3 rounded-lg ${
+                        message.senderType === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-secondary text-secondary-foreground'
+                      }`}>
+                        <div className="character-name mb-1">
+                          {message.senderType === 'user' ? '你' : message.character?.name || 'AI助手'}
+                        </div>
+                        <div className="message-content">{message.content}</div>
+                        <div className="text-xs opacity-70 mt-2">
+                          {new Date(message.createdAt).toLocaleTimeString()}
+                          {message.senderType !== 'user' && (
+                            <span className="ml-2 model-name">
+                              {message.character?.modelConfig ? 
+                                message.character.modelConfig.split(':').pop() : 
+                                'default'
+                              }
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {message.interestScore && (
-                        <Badge variant="outline" className="text-xs">
-                          兴趣: {Math.round(message.interestScore * 100)}%在
-                        </Badge>
-                      )}
                     </div>
-                  )}
-                  <div className="text-sm break-words">{message.content}</div>
-                  <div className="text-xs opacity-70 mt-1">
-                    {formatTime(message.createdAt)}
-                  </div>
+                  ))}
+              {messages.filter(m => m.senderType !== 'system').length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">开始对话</p>
+                  <p className="text-sm">上传角色文件后发送消息开始聊天</p>
                 </div>
-                {message.senderType === 'user' && (
-                  <Avatar className="flex-shrink-0 shadow-sm">
-                    <AvatarFallback>
-                      <User className="w-4 h-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-            {messages.filter(m => m.senderType !== 'system').length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">开始对话</p>
-                <p className="text-sm">上传角色文件后发送消息开始聊天</p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-
-        {/* 输入区域 */}
-        <div className="p-4 border-t border-border bg-card-foreground flex-shrink-0">
-          <div className="max-w-4xl mx-auto space-y-2">
-            <div className="flex gap-2">
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+          
+          <div className="fixed-bottom-input p-4 border-t">
+            <div className="flex gap-3">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder={characters.filter(c => c.isActive).length === 0 ? "请先上传角色文件..." : "输入消息..."}
                 onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
+                placeholder={characters.filter(c => c.isActive).length === 0 ? "请先上传角色文件..." : "输入消息..."}
                 disabled={isLoading || isProcessing || characters.filter(c => c.isActive).length === 0}
-                className="flex-1 p-2 rounded-lg border border-input bg-background text-foreground focus-visible:ring-offset-0 focus-visible:ring-transparent shadow-sm"
+                className="flex-1 input-large"
               />
               <Button 
-                onClick={handleSendMessage} 
+                onClick={handleSendMessage}
                 disabled={isLoading || isProcessing || !inputMessage.trim() || characters.filter(c => c.isActive).length === 0}
-                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+                className="button-large"
               >
                 {isLoading ? '发送中...' : '发送'}
               </Button>
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground mt-2">
               {isLoading ? (
                 <span>发送消息中...</span>
               ) : characters.filter(c => c.isActive).length === 0 ? (
@@ -779,7 +749,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
     </div>
   )
 }

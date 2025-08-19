@@ -175,21 +175,37 @@ export class ChatService {
       // 重新读取API配置以确保使用最新的密钥
       const apiConfig = getApiConfig()
       
-      // 优先使用ZAI SDK进行兴趣度评估
-      const ZAI = (await import('z-ai-web-dev-sdk')).default
-      const zai = await ZAI.create()
-      const completion = await zai.chat.completions.create({
-        messages: [
-          { role: 'system', content: '你是一个专业的角色兴趣度评估专家。' },
-          { role: 'user', content: evaluationPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 500
+      // 使用标准fetch API调用ZAI API进行兴趣度评估
+      const zaiApiKey = process.env.ZAI_API_KEY || apiConfig.zaiApiKey
+      if (!zaiApiKey || zaiApiKey === 'demo-key-for-testing') {
+        return this.generateDemoInterestEvaluation(character, topic, context)
+      }
+
+      const response = await fetch('https://api.z.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${zaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: '你是一个专业的角色兴趣度评估专家。' },
+            { role: 'user', content: evaluationPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        })
       })
 
-      const sdkResponse = completion.choices[0]?.message?.content
-      if (sdkResponse) {
-        const result = JSON.parse(sdkResponse)
+      if (!response.ok) {
+        throw new Error(`ZAI API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const apiResponse = data.choices[0]?.message?.content
+      if (apiResponse) {
+        const result = JSON.parse(apiResponse)
         const shouldParticipate = result.score >= character.interestThreshold
         return {
           score: result.score,
@@ -570,43 +586,39 @@ ${recentHistory.map(hist => `- 关于${hist.topic}：${hist.myView}`).join('\n')
         return this.generateDemoResponse(prompt);
       }
 
-      // 确保环境变量可供SDK读取（如果尚未设置）
-      if (!process.env.ZAI_API_KEY) {
-        process.env.ZAI_API_KEY = zaiApiKey
+      // 使用标准fetch API调用ZAI API
+      const response = await fetch('https://api.z.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${zaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: config.model || 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: '你是一个智能助手，能够根据用户的提示词生成符合角色设定的回复。请严格按照角色设定来回答问题。'
+            },
+            { role: 'user', content: prompt }
+          ],
+          temperature: config.temperature || 0.7,
+          max_tokens: config.maxTokens || 1000
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`ZAI API error: ${response.status}`)
       }
-      
-      // 使用ZAI SDK调用大模型
-      const ZAI = (await import('z-ai-web-dev-sdk')).default
-      
-      console.log('尝试创建ZAI实例...')
-      const zai = await ZAI.create()
-      
-      console.log('ZAI SDK创建完成，准备发送请求...')
-      console.log('ZAI实例信息:', {
-        hasApiKey: !!zai.apiKey,
-        apiKeyPrefix: zai.apiKey ? zai.apiKey.substring(0, 8) + '...' : '未设置',
-        envKey: process.env.ZAI_API_KEY ? process.env.ZAI_API_KEY.substring(0, 8) + '...' : '未设置'
-      })
-      
-      const completion = await zai.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个智能助手，能够根据用户的提示词生成符合角色设定的回复。请严格按照角色设定来回答问题。'
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: config.temperature || 0.7,
-        max_tokens: config.maxTokens || 1000
-      })
-      
-      const response = completion.choices[0]?.message?.content
-      if (!response) {
+
+      const data = await response.json()
+      const apiResponse = data.choices[0]?.message?.content
+      if (!apiResponse) {
         throw new Error('Empty response from AI model')
       }
       
-      console.log('ZAI API调用成功，回复长度:', response.length)
-      return response
+      console.log('ZAI API调用成功，回复长度:', apiResponse.length)
+      return apiResponse
     } catch (error) {
       console.error('ZAI API call failed:', error)
       

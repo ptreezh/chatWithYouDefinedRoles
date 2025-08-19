@@ -37,7 +37,7 @@
     "init": "node scripts/init-project.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.13.0",
+    "@prisma/client": "^6.14.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -64,6 +64,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^24.2.1",
     "@types/react": "^19.1.9",
     "class-variance-authority": "^0.7.1",
@@ -71,6 +72,7 @@
     "cmdk": "^1.1.1",
     "dotenv": "^17.2.1",
     "embla-carousel-react": "^8.6.0",
+    "lightningcss": "^1.30.1",
     "lucide-react": "^0.539.0",
     "next": "^15.4.6",
     "react-day-picker": "^9.8.1",
@@ -87,11 +89,14 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "autoprefixer": "^10.4.21",
+    "autoprefixer": "^10.4.17",
+    "cross-env": "^10.0.0",
     "jest": "^30.0.5",
     "jest-html-reporters": "^3.1.7",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.12",
+    "lightningcss-win32-x64-msvc": "^1.30.1",
+    "postcss": "^8.4.35",
+    "prisma": "^6.14.0",
+    "tailwindcss": "^3.4.17",
     "ts-jest": "^29.4.1"
   },
   "repository": {

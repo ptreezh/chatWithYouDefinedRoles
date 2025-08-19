@@ -65,3 +65,58 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* 自定义样式用于固定底部输入区域 */
+.fixed-bottom-input {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
+  background: hsl(var(--card)) !important;
+  border-top: 1px solid hsl(var(--border)) !important;
+}
+
+@media (min-width: 1024px) {
+  .fixed-bottom-input {
+    left: 20rem !important; /* 80px * 4 = 320px, 对应 w-80 */
+  }
+}
+
+.messages-container {
+  padding-bottom: 120px !important; /* 为固定输入区域留出空间 */
+}
+
+/* 确保滚动正常工作 */
+.scroll-container {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* 消息样式增强 */
+.message-content {
+  font-size: 1rem !important;
+  line-height: 1.6 !important;
+}
+
+.character-name {
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+.model-name {
+  font-size: 0.75rem !important;
+  opacity: 0.7 !important;
+}
+
+/* 输入区域样式增强 */
+.input-large {
+  font-size: 1.125rem !important;
+  padding: 1rem !important;
+}
+
+.button-large {
+  font-size: 1.125rem !important;
+  padding: 1rem 2rem !important;
+  min-width: 120px !important;
+}

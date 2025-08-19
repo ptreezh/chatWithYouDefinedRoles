@@ -263,7 +263,7 @@ export function ThemeManager() {
                 </SelectTrigger>
                 <SelectContent>
                   {themes.map(theme => (
-                    <SelectItem key={theme.id} value={theme.name}>
+                    <SelectItem key={theme.id || theme.name} value={theme.name}>
                       {theme.name}
                     </SelectItem>
                   ))}
