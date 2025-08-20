@@ -2,6 +2,55 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
+}
+}
+}
+}
+}
+}
+}
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "esModuleInterop": true,
+    "strict": true
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
     "lib": [
       "ES2020",
       "DOM"

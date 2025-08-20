@@ -1,815 +1,305 @@
-# 用户界面设计规范
+# 用户界面设计规范 (精简版)
 
-## 🎨 设计原则
+## 🎨 设计原则 (KISS)
 
-### 用户体验优先
-- **简洁直观**: 界面设计简洁明了，用户能够快速理解和使用
-- **一致性**: 整个平台的视觉风格和交互方式保持一致
-- **可访问性**: 符合WCAG 2.1标准，支持键盘导航和屏幕阅读器
-- **响应式**: 适配不同设备和屏幕尺寸
+### 用户体验优先 (KISS)
+- **简洁直观**: 界面设计简洁明了，用户能够快速理解和使用核心功能。
+- **一致性**: 整个平台的视觉风格和交互方式保持一致。
+- **响应式**: 适配不同设备和屏幕尺寸（优先PC，兼容移动端）。
 
-### 现代化设计
-- **Material Design 3**: 采用最新的Material Design设计语言
-- **暗色模式**: 支持明暗主题切换
-- **流畅动画**: 适度的动画效果提升用户体验
-- **微交互**: 细致的交互反馈增强用户感知
+### 现代化设计 (KISS)
+- **基础Material Design**: 采用简洁的Material Design元素。
+- **主题切换**: 支持基础的明暗主题切换。
+- **微交互**: 关键操作有适度的反馈。
 
 ---
 
-## 🏠 主界面设计
+## 🏠 主界面设计 (KISS)
 
-### 仪表板布局
+### 仪表板布局 (KISS)
 ```typescript
 interface DashboardLayout {
   header: {
-    logo: string
-    navigation: NavItem[]
-    userMenu: UserMenuItem[]
-    notifications: NotificationItem[]
-  }
+    logo: string;
+    userMenu: UserMenuItem[]; // 个人资料, 登出
+  };
   sidebar: {
-    mainSections: Section[]
-    quickActions: QuickAction[]
-    userStats: UserStats[]
-  }
+    mainSections: Section[]; // 聊天室, 角色管理
+  };
   mainContent: {
-    welcomeSection: WelcomeSection
-    recentActivity: ActivityFeed[]
-    quickStart: QuickStartGuide[]
-    featuredRoles: FeaturedRole[]
-  }
+    welcomeSection: WelcomeSection; // 欢迎信息
+    quickStart: QuickStartGuide[]; // 快速开始引导 (创建聊天室, 上传角色)
+  };
 }
 ```
 
-### 响应式断点
+### 响应式断点 (KISS)
 ```css
 /* 移动端 */
 @media (max-width: 768px) {
-  .dashboard {
-    grid-template-columns: 1fr;
-  }
-  
-  .sidebar {
-    display: none;
-  }
-}
-
-/* 平板端 */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .dashboard {
-    grid-template-columns: 80px 1fr;
-  }
-  
-  .sidebar {
-    width: 80px;
-  }
+  .dashboard { grid-template-columns: 1fr; }
+  .sidebar { display: none; } /* 移动端菜单通过汉堡按钮展开 */
 }
 
 /* 桌面端 */
-@media (min-width: 1025px) {
-  .dashboard {
-    grid-template-columns: 280px 1fr;
-  }
-  
-  .sidebar {
-    width: 280px;
-  }
+@media (min-width: 769px) {
+  .dashboard { grid-template-columns: 250px 1fr; }
+  .sidebar { width: 250px; }
 }
 ```
 
 ---
 
-## 🔐 认证界面设计
+## 🔐 认证界面设计 (KISS)
 
-### 登录页面
+### 登录/注册页面 (KISS)
 ```typescript
-interface LoginPage {
+interface AuthPage {
   layout: {
-    heroSection: {
-      title: string
-      subtitle: string
-      backgroundImage: string
-      ctaButtons: CTAButton[]
-    }
-    loginForm: {
-      emailField: FormField
-      passwordField: FormField
-      rememberMe: Checkbox
-      submitButton: Button
-      socialLogin: SocialLoginProvider[]
+    formSection: {
+      title: string; // 登录 / 注册
+      emailField: FormField;
+      passwordField: FormField;
+      confirmPasswordField?: FormField; // 仅注册时
+      submitButton: Button;
+      socialLogin: SocialLoginButton[]; // Google, (GitHub)
       links: {
-        forgotPassword: string
-        signUp: string
-      }
-    }
-  }
-  features: {
-    items: FeatureItem[]
-    layout: 'grid' | 'carousel'
-  }
-}
-
-interface SocialLoginProvider {
-  id: string
-  name: string
-  icon: string
-  color: string
-  callbackUrl: string
-}
-```
-
-### 多因素认证界面
-```typescript
-interface MFASetupPage {
-  steps: MFAStep[]
-  currentStep: number
-  progress: {
-    current: number
-    total: number
-    percentage: number
-  }
-}
-
-interface MFAStep {
-  id: string
-  title: string
-  description: string
-  component: React.ComponentType
-  validation: (data: any) => boolean
-  nextStep?: string
-  previousStep?: string
-}
-```
-
-### 设备管理界面
-```typescript
-interface DeviceManagementPage {
-  currentDevice: {
-    name: string
-    type: string
-    lastActive: string
-    isTrusted: boolean
-  }
-  trustedDevices: Device[]
-  activeSessions: Session[]
-  securitySettings: {
-    newDeviceNotifications: boolean
-    suspiciousActivityAlerts: boolean
-    automaticLogout: boolean
-  }
+        forgotPassword?: string; // 可选
+        signUpOrIn: string; // 切换到注册/登录
+      };
+    };
+    heroSection?: { // 可选的介绍区域
+      title: string;
+      subtitle: string;
+    };
+  };
 }
 ```
 
 ---
 
-## 👤 用户管理界面
+## 👤 用户管理界面 (KISS)
 
-### 用户画像编辑器
+### 个人资料页面 (KISS)
 ```typescript
-interface UserProfileEditor {
+interface ProfilePage {
   sections: {
     basicInfo: {
-      avatar: AvatarUploader
-      personalInfo: PersonalInfoForm
-      contactInfo: ContactInfoForm
-    }
-    demographics: {
-      age: NumberField
-      gender: SelectField
-      location: LocationField
-      languages: MultiSelectField
-    }
-    profession: {
-      industry: SelectField
-      role: TextField
-      experience: SliderField
-      skills: TagInputField
-    }
-    interests: {
-      categories: InterestCategory[]
-      selectedInterests: string[]
-      suggestedInterests: string[]
-    }
-    preferences: {
-      communicationStyle: RadioGroup
-      privacyLevel: RadioGroup
-      notificationSettings: NotificationSettingsForm
-    }
-  }
-  saveButton: Button
-  cancelButton: Button
-  previewMode: boolean
-}
-```
-
-### 偏好设置界面
-```typescript
-interface PreferencesPage {
-  tabs: {
-    general: {
-      theme: ThemeSelector
-      language: LanguageSelector
-      timezone: TimezoneSelector
-    }
-    notifications: {
-      emailNotifications: NotificationPreference[]
-      pushNotifications: NotificationPreference[]
-      inAppNotifications: NotificationPreference[]
-    }
-    privacy: {
-      profileVisibility: RadioGroup
-      activityStatus: Toggle
-      dataCollection: Toggle
-      thirdPartyAccess: ThirdPartyApp[]
-    }
-    accessibility: {
-      fontSize: FontSizeSelector
-      highContrast: Toggle
-      screenReader: Toggle
-      keyboardNavigation: Toggle
-    }
-  }
+      avatar: AvatarUploader;
+      nameField: TextField; // 昵称
+      emailField: TextField; // 只读
+    };
+    security: {
+      changePassword: ChangePasswordForm; // 修改密码
+      connectedAccounts: ConnectedAccountsList; // OAuth账户
+      deleteAccount: DeleteAccountButton; // 删除账户
+    };
+  };
 }
 ```
 
 ---
 
-## 💬 多用户聊天室界面
+## 💬 聊天室界面 (核心)
 
-### 聊天室主界面
+### 聊天室主界面 (KISS)
 ```typescript
 interface ChatRoomInterface {
   layout: {
     sidebar: {
-      roomList: ChatRoom[]
-      createRoomButton: Button
-      search: SearchBar
-      filters: FilterOption[]
-    }
+      roomList: ChatRoom[]; // 用户的聊天室列表
+      createRoomButton: Button; // 创建新聊天室
+    };
     mainArea: {
       header: {
-        roomInfo: RoomInfo
-        participants: ParticipantList
-        actions: ActionButton[]
-      }
-      messages: MessageList
-      inputArea: MessageInput
-    }
+        roomInfo: RoomInfo; // 聊天室名称
+        actions: ActionButton[]; // 删除聊天室
+      };
+      messages: MessageList; // 消息展示区
+      inputArea: MessageInput; // 消息输入区
+    };
     rightPanel: {
-      roleManager: RoleManager
-      settings: RoomSettings
-      participants: ParticipantList
-    }
-  }
-  responsive: {
-    mobileLayout: 'messages' | 'participants' | 'settings'
-    tabletLayout: 'sidebar-main' | 'main-panel'
-  }
+      roleSelector: RoleSelector; // 选择/切换AI角色
+      roomSettings?: RoomSettings; // 基础设置 (可选)
+    };
+  };
 }
 ```
 
-### 消息组件设计
+### 消息组件设计 (KISS)
 ```typescript
 interface MessageComponent {
   variants: {
-    text: TextMessage
-    image: ImageMessage
-    file: FileMessage
-    system: SystemMessage
-    ai: AIMessage
-  }
+    text: TextMessage; // 基础文本消息
+    system: SystemMessage; // 系统消息 (如"AI正在思考")
+  };
   states: {
-    sending: 'sending'
-    sent: 'sent'
-    delivered: 'delivered'
-    read: 'read'
-    failed: 'failed'
-  }
-  actions: {
-    reply: Action
-    forward: Action
-    delete: Action
-    edit: Action
-    react: Action
-  }
-}
-```
-
-### 参与者管理界面
-```typescript
-interface ParticipantManager {
-  list: {
-    participants: Participant[]
-    search: SearchBar
-    filter: FilterOption[]
-    sort: SortOption[]
-  }
-  actions: {
-    invite: InviteModal
-    promote: PromoteModal
-    demote: DemoteModal
-    remove: RemoveModal
-    ban: BanModal
-  }
-  roles: {
-    owner: RoleConfig
-    admin: RoleConfig
-    moderator: RoleConfig
-    member: RoleConfig
-  }
+    sending: 'sending';
+    sent: 'sent';
+    failed: 'failed';
+  };
 }
 ```
 
 ---
 
-## 🤖 AI角色市场界面
+## 🤖 角色管理界面 (核心)
 
-### 角色浏览页面
+### 角色列表页面 (KISS)
 ```typescript
-interface RoleMarketplacePage {
+interface CharacterManagementPage {
   layout: {
     header: {
-      hero: HeroSection
-      searchBar: SearchBar
-      filters: FilterSection
-    }
+      title: string; // "我的角色"
+      uploadButton: Button; // 上传新角色
+    };
     content: {
-      categories: CategoryGrid
-      featuredRoles: FeaturedCarousel
-      roleGrid: RoleCard[]
-      pagination: Pagination
-    }
-    sidebar: {
-      filters: AdvancedFilter[]
-      sortOptions: SortOption[]
-      priceRange: RangeSlider
-      ratingFilter: RatingFilter
-    }
-  }
-  views: {
-    grid: GridView
-    list: ListView
-    map: MapView
-  }
+      characterGrid: CharacterCard[]; // 角色卡片列表
+    };
+  };
+}
+
+interface CharacterCard {
+  avatar: string;
+  name: string;
+  lastModified: string;
+  actions: {
+    edit: Action; // 编辑基础信息
+    delete: Action; // 删除角色
+  };
 }
 ```
 
-### 角色详情页面
+### 角色上传/创建界面 (KISS)
 ```typescript
-interface RoleDetailPage {
-  sections: {
-    hero: {
-      coverImage: string
-      avatar: string
-      title: string
-      subtitle: string
-      rating: Rating
-      price: Price
-      actions: ActionButton[]
-    }
-    description: {
-      overview: string
-      features: Feature[]
-      requirements: Requirement[]
-    }
-    preview: {
-      demo: DemoInterface
-      screenshots: ImageGallery
-      video: VideoPlayer
-    }
-    reviews: {
-      summary: ReviewSummary
-      reviews: Review[]
-      writeReview: ReviewForm
-    }
-    creator: {
-      profile: CreatorProfile
-      otherRoles: RoleCard[]
-    }
-  }
-}
-```
-
-### 角色创建界面
-```typescript
-interface RoleCreatorPage {
+interface CharacterUploadPage {
   steps: {
-    basic: {
-      name: TextField
-      category: SelectField
-      description: TextArea
-      tags: TagInput
-    }
-    configuration: {
-      personality: PersonalityForm
-      expertise: ExpertiseForm
-      behavior: BehaviorForm
-    }
-    appearance: {
-      avatar: AvatarUploader
-      theme: ThemeSelector
-      styling: StyleForm
-    }
-    pricing: {
-      type: RadioGroup
-      price: NumberField
-      subscription: SubscriptionForm
-    }
-    publish: {
-      review: ReviewSection
-      terms: Checkbox
-      submit: Button
-    }
-  }
-  preview: {
-    livePreview: RolePreview
-    testChat: TestChatInterface
-  }
+    fileUpload: {
+      uploader: FileUploader; // 上传角色文件
+    };
+    basicInfo: {
+      nameField: TextField; // 角色名称
+      descriptionField: TextArea; // 简单描述
+    };
+    confirm: {
+      review: ReviewSection; // 预览信息
+      submitButton: Button; // 确认创建
+    };
+  };
 }
 ```
 
 ---
 
-## 📊 数据分析界面
+## 🎨 组件设计系统 (KISS)
 
-### 用户分析仪表板
-```typescript
-interface AnalyticsDashboard {
-  widgets: {
-    overview: {
-      totalUsers: MetricCard
-      activeUsers: MetricCard
-      newUsers: MetricCard
-      retentionRate: MetricCard
-    }
-    behavior: {
-      sessionDuration: Chart
-      pageViews: Chart
-      featureUsage: Chart
-      conversionFunnel: Chart
-    }
-    demographics: {
-      ageDistribution: Chart
-      genderDistribution: Chart
-      locationDistribution: MapChart
-      languageDistribution: Chart
-    }
-    engagement: {
-      messagesSent: Chart
-      roomsCreated: Chart
-      rolesPurchased: Chart
-      timeSpent: Chart
-    }
-  }
-  filters: {
-    dateRange: DateRangePicker
-    userSegment: SelectField
-    deviceType: SelectField
-    location: MultiSelectField
-  }
-  export: {
-    format: SelectField
-    include: Checkbox[]
-    schedule: ScheduleForm
-  }
-}
-```
-
-### 实时监控界面
-```typescript
-interface MonitoringDashboard {
-  sections: {
-    systemHealth: {
-      cpu: GaugeChart
-      memory: GaugeChart
-      disk: GaugeChart
-      network: LineChart
-    }
-    applicationMetrics: {
-      responseTime: LineChart
-      errorRate: LineChart
-      throughput: LineChart
-      activeUsers: Number
-    }
-    alerts: {
-      activeAlerts: AlertList
-      alertHistory: DataTable
-      alertRules: RuleList
-    }
-    logs: {
-      liveLogs: LogViewer
-      logSearch: SearchBar
-      logFilters: FilterGroup
-    }
-  }
-}
-```
-
----
-
-## 🎨 组件设计系统
-
-### 基础组件
+### 基础组件 (KISS)
 ```typescript
 interface DesignSystem {
   colors: {
-    primary: ColorPalette
-    secondary: ColorPalette
-    neutral: ColorPalette
-    semantic: SemanticColors
-  }
+    primary: string; // 主色调
+    secondary: string; // 辅助色
+    background: string; // 背景色
+    text: string; // 文字色
+    success: string; // 成功状态色
+    error: string; // 错误状态色
+  };
   typography: {
-    fontFamily: FontFamily
-    fontSize: FontScale
-    fontWeight: FontWeightScale
-    lineHeight: LineHeightScale
-  }
+    fontFamily: string; // 主字体
+    sizes: { small: string; base: string; large: string; xl: string; };
+  };
   spacing: {
-    unit: number
-    scale: SpacingScale
-  }
-  borderRadius: {
-    none: string
-    small: string
-    medium: string
-    large: string
-    full: string
-  }
+    unit: number; // 基础间距单位
+  };
   shadows: {
-    none: string
-    small: string
-    medium: string
-    large: string
-  }
-  animations: {
-    duration: AnimationDuration
-    easing: EasingFunction
-  }
+    card: string; // 卡片阴影
+    focus: string; // 焦点阴影
+  };
 }
 ```
 
-### 表单组件
+### 表单组件 (KISS)
 ```typescript
 interface FormComponents {
   input: {
-    variants: {
-      text: TextInput
-      email: EmailInput
-      password: PasswordInput
-      number: NumberInput
-      phone: PhoneInput
-    }
-    states: {
-      default: FormState
-      focused: FormState
-      error: FormState
-      disabled: FormState
-      success: FormState
-    }
-  }
-  select: {
-    single: SelectInput
-    multiple: MultiSelect
-    searchable: SearchableSelect
-    creatable: CreatableSelect
-  }
-  checkbox: {
-    single: Checkbox
-    group: CheckboxGroup
-    toggle: Toggle
-  }
-  radio: {
-    group: RadioGroup
-    button: RadioButton
-  }
-  textarea: {
-    basic: TextArea
-    resizable: ResizableTextArea
-    autoResize: AutoResizeTextArea
-  }
+    text: TextInput;
+    email: EmailInput;
+    password: PasswordInput;
+  };
+  button: {
+    primary: Button;
+    secondary: Button;
+    danger: Button; // 用于删除等危险操作
+  };
   file: {
-    upload: FileUpload
-    dropzone: Dropzone
-    gallery: FileGallery
-  }
+    upload: FileUpload; // 文件上传
+  };
 }
 ```
 
-### 反馈组件
+### 反馈组件 (KISS)
 ```typescript
 interface FeedbackComponents {
   notification: {
     types: {
-      success: Notification
-      error: Notification
-      warning: Notification
-      info: Notification
-    }
-    positions: {
-      top: Position
-      bottom: Position
-      topLeft: Position
-      topRight: Position
-      bottomLeft: Position
-      bottomRight: Position
-    }
-  }
+      success: Notification;
+      error: Notification;
+      info: Notification;
+    };
+  };
   modal: {
-    sizes: {
-      small: ModalSize
-      medium: ModalSize
-      large: ModalSize
-      full: ModalSize
-    }
-    animations: {
-      fadeIn: Animation
-      slideUp: Animation
-      slideDown: Animation
-      zoom: Animation
-    }
-  }
-  tooltip: {
-    positions: {
-      top: Position
-      bottom: Position
-      left: Position
-      right: Position
-    }
-    triggers: {
-      hover: Trigger
-      click: Trigger
-      focus: Trigger
-    }
-  }
-  loading: {
-    spinner: Spinner
-    skeleton: Skeleton
-    progress: ProgressBar
-    overlay: LoadingOverlay
-  }
+    confirm: ConfirmModal; // 确认对话框 (如删除确认)
+  };
 }
 ```
 
 ---
 
-## 📱 移动端适配
+## 📱 移动端适配 (KISS)
 
-### 移动端导航
-```typescript
-interface MobileNavigation {
-  bottomBar: {
-    items: NavItem[]
-    activeItem: string
-    badge: BadgeConfig
-  }
-  drawer: {
-    items: NavItem[]
-    userSection: UserSection
-    settings: SettingsItem[]
-  }
-  gestures: {
-    swipe: SwipeGesture
-    pullToRefresh: PullToRefresh
-    infiniteScroll: InfiniteScroll
-  }
-}
-```
-
-### 移动端聊天界面
+### 移动端聊天界面 (KISS)
 ```typescript
 interface MobileChatInterface {
   layout: {
     header: {
-      backButton: Button
-      roomInfo: RoomInfo
-      actions: ActionButton[]
-    }
-    messages: MessageList
+      backButton: Button; // 返回聊天室列表
+      roomInfo: RoomInfo;
+      menuButton: Button; // 打开菜单 (角色选择, 聊天室设置)
+    };
+    messages: MessageList;
     inputArea: {
-      textField: TextField
-      attachments: AttachmentButton
-      emoji: EmojiButton
-      send: SendButton
-    }
-  }
-  gestures: {
-    swipeToReply: SwipeGesture
-    longPressMenu: LongPressMenu
-    doubleTapReaction: DoubleTapGesture
-  }
-  keyboard: {
-    avoidKeyboard: boolean
-    resizeOnKeyboard: boolean
-    keyboardToolbar: KeyboardToolbar
-  }
+      textField: TextField;
+      sendButton: Button;
+    };
+  };
 }
 ```
 
 ---
 
-## ♿ 可访问性设计
+## ♿ 可访问性设计 (基础)
 
-### 键盘导航
-```typescript
-interface KeyboardNavigation {
-  tabOrder: TabOrder[]
-  shortcuts: {
-    global: KeyboardShortcut[]
-    contextual: KeyboardShortcut[]
-  }
-  focusManagement: {
-    trapFocus: boolean
-    restoreFocus: boolean
-    autoFocus: boolean
-  }
-}
-
-interface KeyboardShortcut {
-  key: string
-  ctrl?: boolean
-  alt?: boolean
-  shift?: boolean
-  meta?: boolean
-  action: string
-  description: string
-}
-```
-
-### 屏幕阅读器支持
-```typescript
-interface ScreenReaderSupport {
-  aria: {
-    labels: AriaLabel[]
-    descriptions: AriaDescription[]
-    roles: AriaRole[]
-    states: AriaState[]
-  }
-  liveRegions: {
-    polite: LiveRegion[]
-    assertive: LiveRegion[]
-  }
-  announcements: {
-    pageChanges: Announcement[]
-    formErrors: Announcement[]
-    statusUpdates: Announcement[]
-  }
-}
-```
+### 基础可访问性 (KISS)
+- **语义化HTML**: 使用正确的HTML标签。
+- **Alt文本**: 为所有图片提供Alt文本。
+- **键盘导航**: 确保主要功能可以通过Tab键访问。
+- **对比度**: 确保文字与背景有足够对比度。
 
 ---
 
-## 🎭 主题系统
+## 🎭 主题系统 (KISS)
 
-### 主题配置
+### 基础主题切换 (KISS)
 ```typescript
 interface ThemeSystem {
   themes: {
-    light: Theme
-    dark: Theme
-    system: SystemTheme
-    custom: CustomTheme[]
-  }
-  variables: {
-    colors: CSSVariables
-    typography: CSSVariables
-    spacing: CSSVariables
-    borderRadius: CSSVariables
-    shadows: CSSVariables
-  }
+    light: Theme;
+    dark: Theme;
+  };
   mode: {
-    current: 'light' | 'dark' | 'system'
-    toggle: ThemeToggle
-    schedule: ThemeSchedule
-  }
-}
-
-interface Theme {
-  id: string
-  name: string
-  colors: ThemeColors
-  typography: ThemeTypography
-  spacing: ThemeSpacing
-  shadows: ThemeShadows
-  borderRadius: ThemeBorderRadius
-}
-```
-
-### 动态主题切换
-```typescript
-interface ThemeSwitcher {
-  provider: ThemeProvider
-  storage: {
-    type: 'localStorage' | 'cookie' | 'memory'
-    key: string
-  }
-  sync: {
-    acrossTabs: boolean
-    withSystem: boolean
-  }
-  transition: {
-    duration: number
-    easing: string
-  }
+    current: 'light' | 'dark';
+    toggle: ThemeToggle; // 切换按钮
+  };
 }
 ```
 
@@ -817,17 +307,17 @@ interface ThemeSwitcher {
 
 ## 📋 总结
 
-本用户界面设计规范为多用户认证系统扩充提供了完整的界面设计指导。通过现代化的设计语言、响应式布局、可访问性支持和主题系统，我们能够：
+本用户界面设计规范为多用户认证系统扩充提供了**简洁、聚焦核心功能**的界面设计指导。通过KISS原则，我们能够：
 
-1. **提升用户体验**: 直观、美观、易用的界面设计
-2. **增强可用性**: 支持多种设备和访问方式
-3. **保持一致性**: 统一的设计语言和组件系统
-4. **支持个性化**: 丰富的主题和偏好设置
+1.  **快速实现价值**: 优先设计和开发用户最需要的核心功能界面。
+2.  **降低复杂性**: 避免过早引入复杂的设计元素和交互。
+3.  **保持一致性**: 统一的设计语言和组件系统，提升用户体验。
+4.  **支持未来扩展**: 简洁的设计为未来添加新功能（如人格标签、高级角色市场）预留了空间。
 
-该设计规范将确保Chat4平台在功能扩充的同时，提供卓越的用户体验。
+该设计规范将确保Chat4平台在功能扩充的同时，提供一个**简单、直观、高效**的用户界面。
 
 ---
 
-**设计规范版本**: 1.0  
-**创建日期**: 2025-08-20  
+**设计规范版本**: 1.1 (精简版)
+**创建日期**: 2025-08-20
 **设计团队**: UI/UX设计组
