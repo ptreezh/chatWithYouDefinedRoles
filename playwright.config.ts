@@ -48,11 +48,10 @@ export default defineConfig({
       },
     },
   ],
-  // 注释掉webServer配置，因为我们假设服务器已经运行
-  /*webServer: {
+  webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
-  },*/
+  },
 });

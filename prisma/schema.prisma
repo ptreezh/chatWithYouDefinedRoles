@@ -26,10 +26,16 @@ model Character {
   theme             String?
   filePath          String?
   isActive          Boolean  @default(true)
+  userId            String   // 添加用户关联
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  // 关联关系
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]
+
+  @@index([userId])
+  @@map("characters")
 }
 
 model ChatRoom {
@@ -37,10 +43,16 @@ model ChatRoom {
   name      String
   theme     String?
   isActive  Boolean  @default(true)
+  userId    String   // 添加用户关联
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // 关联关系
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]
+
+  @@index([userId])
+  @@map("chat_rooms")
 }
 
 model Message {
@@ -61,11 +73,60 @@ model Message {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  password_hash  String?   // 本地认证需要，OAuth用户可能为空
+  avatar         String?   // 头像URL
+  status         UserStatus @default(PENDING)
+  role           UserRole   @default(USER)
+  email_verified Boolean   @default(false) // 邮箱验证状态
+  last_login_at  DateTime? @map("last_login_at")
+  created_at     DateTime  @default(now()) @map("created_at")
+  updated_at     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // 用户关联的数据
+  chatRooms      ChatRoom[]
+  characters     Character[]
+  
+  // OAuth 关联
+  oauth_accounts OAuthAccount[]
+
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING  // 主要用于邮箱未验证
+  BANNED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// OAuth 账户关联
+model OAuthAccount {
+  id            String   @id @default(cuid())
+  user_id       String
+  provider      String   // 'google', 'github'
+  provider_id   String   // 在提供商处的唯一ID
+  access_token  String?
+  refresh_token String?
+  expires_at    DateTime? @map("expires_at")
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // 关联关系
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_id])
+  @@index([user_id, provider])
+  @@map("user_oauth_accounts")
 }
 
 model Post {

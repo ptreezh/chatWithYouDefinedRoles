@@ -1,17 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { MemoryBankManager } from '@/lib/memory-bank'
-import fs from 'fs/promises'
-import path from 'path'
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { MemoryBankManager } from '@/lib/memory-bank';
+import fs from 'fs/promises';
+import path from 'path';
+import { getAuthenticatedUser } from '@/lib/auth-middleware';
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' }
+        },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData()
     const files = formData.getAll('file') as File[]
     const theme = formData.get('theme') as string || 'default'
     
     if (!files || files.length === 0) {
-      return NextResponse.json({ error: 'No files provided' }, { status: 400 })
+      return NextResponse.json({ 
+        success: false, 
+        error: { code: 'VALIDATION_ERROR', message: 'No files provided' }
+      }, { status: 400 })
     }
 
     const results = []
@@ -48,7 +64,7 @@ export async function POST(request: NextRequest) {
         console.log('Writing file to:', filePath)
         await fs.writeFile(filePath, content, 'utf-8')
         
-        // 创建角色记录
+        // 创建角色记录（关联用户）
         const character = await db.character.create({
           data: {
             name: characterName,
@@ -58,7 +74,8 @@ export async function POST(request: NextRequest) {
             isActive: true,
             category: theme === 'default' ? 'custom' : 'theme',
             theme: theme,
-            filePath: `${themeDir}/${fileName}`
+            filePath: `${themeDir}/${fileName}`,
+            userId: user.id // 关联用户
           }
         })
 
@@ -110,12 +127,31 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate user
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' }
+        },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url)
     const theme = searchParams.get('theme')
     
-    let whereClause = { isActive: true }
+    let whereClause = { 
+      isActive: true,
+      userId: user.id // 只返回当前用户的角色
+    }
     if (theme) {
-      whereClause = { isActive: true, theme: theme }
+      whereClause = { 
+        isActive: true, 
+        theme: theme,
+        userId: user.id 
+      }
     }
     
     const characters = await db.character.findMany({
@@ -123,11 +159,15 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json({ characters })
+    return NextResponse.json({ 
+      success: true, 
+      data: { characters } 
+    })
   } catch (error) {
     console.error('Error fetching characters:', error)
     return NextResponse.json({ 
-      error: 'Failed to fetch characters' 
+      success: false, 
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch characters' }
     }, { status: 500 })
   }
 }

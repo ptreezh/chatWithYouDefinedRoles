@@ -15,6 +15,8 @@ import ApiConfigV2 from '@/components/api-config-v2'
 import CharacterManager from '@/components/character-manager'
 import { ThemeManager } from '@/components/theme-manager'
 
+import { getToken } from '@/lib/auth';
+
 interface Character {
   id: string
   name: string
@@ -37,8 +39,12 @@ interface Message {
   participationReason?: string
 }
 
+import { useRouter } from 'next/navigation';
+import { isAuthenticated } from '@/lib/auth';
+
 export default function Home() {
-  const [characters, setCharacters] = useState<Character[]>([])
+  const router = useRouter();
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [chatTheme, setChatTheme] = useState('')
@@ -58,6 +64,12 @@ export default function Home() {
   // 死循环检测相关状态
   const [recentReplies, setRecentReplies] = useState<string[]>([])
   const [temperatureOverride, setTemperatureOverride] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/auth');
+    }
+  }, [router]);
   
   // 自动滚动相关
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -338,67 +350,81 @@ export default function Home() {
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    // 使用单个FormData上传所有文件
-    const formData = new FormData()
+    const token = getToken();
+    if (!token) {
+      // This should ideally not happen due to the page guard, but as a fallback
+      console.error('No auth token found. Please log in.');
+      return;
+    }
+
+    const formData = new FormData();
     Array.from(files).forEach(file => {
-      formData.append('file', file)
-    })
+      formData.append('file', file);
+    });
 
     try {
       const response = await fetch('/api/characters', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
         body: formData,
-      })
+      });
 
       if (!response.ok) {
-        console.error('Failed to upload character files')
-        // 显示上传失败的提示
+        console.error('Failed to upload character files');
         const errorMessage: Message = {
           id: Date.now().toString(),
-          content: '角色文件上传失败，请检查文件格式',
+          content: '角色文件上传失败，请检查文件格式或重新登录。',
           senderType: 'system',
-          createdAt: new Date().toISOString()
-        }
-        setMessages(prev => [...prev, errorMessage])
-        return
+          createdAt: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        return;
       }
 
-      const data = await response.json()
+      const data = await response.json();
       
-      // 重新获取所有角色以确保数据同步
-      const charactersResponse = await fetch('/api/characters')
+      // Refetch characters to sync data
+      const charactersResponse = await fetch('/api/characters', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       if (charactersResponse.ok) {
-        const charactersData = await charactersResponse.json()
-        setCharacters(charactersData.characters)
+        const charactersData = await charactersResponse.json();
+        // NOTE: The backend returns { success: true, data: { characters: [...] } }
+        if (charactersData.success) {
+          setCharacters(charactersData.data.characters);
+        } else {
+           throw new Error(charactersData.error?.message || 'Failed to fetch characters');
+        }
         
-        // 显示上传成功的提示
         const successMessage: Message = {
           id: Date.now().toString(),
           content: `成功上传 ${data.results.successful.length} 个角色！`,
           senderType: 'system',
-          createdAt: new Date().toISOString()
-        }
-        setMessages(prev => [...prev, successMessage])
+          createdAt: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, successMessage]);
       }
       
     } catch (error) {
-      console.error('Error processing file uploads:', error)
-      // 显示上传失败的提示
+      console.error('Error processing file uploads:', error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: '角色文件上传失败，请检查文件格式',
+        content: '角色文件上传失败，请检查文件格式或网络连接。',
         senderType: 'system',
-        createdAt: new Date().toISOString()
-      }
-      setMessages(prev => [...prev, errorMessage])
+        createdAt: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
     
-    // 清空文件输入
-    event.target.value = ''
-  }
+    event.target.value = '';
+  };
 
   const handleCharactersChange = (newCharacters: Character[]) => {
     setCharacters(newCharacters)
@@ -513,6 +539,7 @@ export default function Home() {
               <Button 
                 className="w-full"
                 onClick={() => document.getElementById('file-upload-characters')?.click()}
+                data-testid="character-upload-button"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 上传角色文件

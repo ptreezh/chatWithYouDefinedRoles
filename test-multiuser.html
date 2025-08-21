@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat4 多用户功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .user-info {
+            background-color: #e2f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Chat4 多用户功能测试</h1>
+        
+        <div id="userInfo" class="user-info hidden">
+            <h3>当前用户信息</h3>
+            <div id="userDetails"></div>
+            <button onclick="logout()">退出登录</button>
+        </div>
+
+        <div id="authSection">
+            <div class="tab-container">
+                <div class="tab active" onclick="switchTab('register')">注册</div>
+                <div class="tab" onclick="switchTab('login')">登录</div>
+            </div>
+            
+            <div id="registerTab" class="tab-content active">
+                <h2>用户注册</h2>
+                <input type="email" id="regEmail" placeholder="邮箱地址" />
+                <input type="password" id="regPassword" placeholder="密码" />
+                <input type="text" id="regName" placeholder="姓名（可选）" />
+                <button onclick="register()">注册用户</button>
+                <div id="registerResult" class="result"></div>
+            </div>
+            
+            <div id="loginTab" class="tab-content">
+                <h2>用户登录</h2>
+                <input type="email" id="loginEmail" placeholder="邮箱地址" />
+                <input type="password" id="loginPassword" placeholder="密码" />
+                <button onclick="login()">登录</button>
+                <div id="loginResult" class="result"></div>
+            </div>
+        </div>
+
+        <div id="appSection" class="hidden">
+            <div class="tab-container">
+                <div class="tab active" onclick="switchAppTab('chatroom')">聊天室</div>
+                <div class="tab" onclick="switchAppTab('character')">角色</div>
+                <div class="tab" onclick="switchAppTab('profile')">个人资料</div>
+            </div>
+
+            <div id="chatroomTab" class="tab-content active">
+                <h2>聊天室管理</h2>
+                <input type="text" id="chatroomName" placeholder="聊天室名称" />
+                <input type="text" id="chatroomTheme" placeholder="主题（可选）" />
+                <button onclick="createChatroom()">创建聊天室</button>
+                <div id="chatroomResult" class="result"></div>
+                
+                <h3>我的聊天室</h3>
+                <div id="chatroomList"></div>
+            </div>
+
+            <div id="characterTab" class="tab-content">
+                <h2>角色管理</h2>
+                <input type="file" id="characterFile" accept=".txt,.md" />
+                <input type="text" id="characterTheme" placeholder="主题" />
+                <button onclick="uploadCharacter()">上传角色</button>
+                <div id="characterResult" class="result"></div>
+                
+                <h3>我的角色</h3>
+                <div id="characterList"></div>
+            </div>
+
+            <div id="profileTab" class="tab-content">
+                <h2>个人资料</h2>
+                <input type="text" id="profileName" placeholder="姓名" />
+                <input type="url" id="profileAvatar" placeholder="头像URL" />
+                <button onclick="updateProfile()">更新资料</button>
+                <div id="profileResult" class="result"></div>
+                
+                <h3>账户信息</h3>
+                <div id="profileInfo"></div>
+                
+                <button onclick="deleteAccount()" style="background-color: #dc3545;">删除账户</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:4000';
+        let currentToken = '';
+
+        // 标签切换
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        function switchAppTab(tabName) {
+            document.querySelectorAll('#appSection .tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('#appSection .tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // 显示结果
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        // API请求
+        async function apiRequest(url, options = {}) {
+            try {
+                const response = await fetch(API_BASE + url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentToken ? { 'Authorization': `Bearer ${currentToken}` } : {}),
+                        ...options.headers
+                    }
+                });
+                
+                const data = await response.json();
+                return { response, data };
+            } catch (error) {
+                return { response: null, data: { success: false, error: { message: error.message } } };
+            }
+        }
+
+        // 用户注册
+        async function register() {
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const name = document.getElementById('regName').value;
+
+            if (!email || !password) {
+                showResult('registerResult', '请填写邮箱和密码', false);
+                return;
+            }
+
+            const { data } = await apiRequest('/api/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ email, password, name })
+            });
+
+            if (data.success) {
+                showResult('registerResult', '注册成功！请登录。', true);
+                currentToken = data.data.token.accessToken;
+                showUserInfo();
+                showAppSection();
+            } else {
+                showResult('registerResult', `注册失败: ${data.error?.message || '未知错误'}`, false);
+            }
+        }
+
+        // 用户登录
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showResult('loginResult', '请填写邮箱和密码', false);
+                return;
+            }
+
+            const { data } = await apiRequest('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+
+            if (data.success) {
+                showResult('loginResult', '登录成功！', true);
+                currentToken = data.data.token.accessToken;
+                showUserInfo();
+                showAppSection();
+            } else {
+                showResult('loginResult', `登录失败: ${data.error?.message || '未知错误'}`, false);
+            }
+        }
+
+        // 显示用户信息
+        async function showUserInfo() {
+            const { data } = await apiRequest('/api/auth/me');
+            
+            if (data.success) {
+                const user = data.data.user;
+                document.getElementById('userDetails').innerHTML = `
+                    <p><strong>ID:</strong> ${user.id}</p>
+                    <p><strong>邮箱:</strong> ${user.email}</p>
+                    <p><strong>姓名:</strong> ${user.name || '未设置'}</p>
+                    <p><strong>状态:</strong> ${user.status}</p>
+                    <p><strong>角色:</strong> ${user.role}</p>
+                    <p><strong>创建时间:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+                `;
+                document.getElementById('userInfo').classList.remove('hidden');
+                
+                // 填充个人资料表单
+                document.getElementById('profileName').value = user.name || '';
+                document.getElementById('profileAvatar').value = user.avatar || '';
+            }
+        }
+
+        // 显示应用区域
+        function showAppSection() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('appSection').classList.remove('hidden');
+            loadChatrooms();
+            loadCharacters();
+        }
+
+        // 退出登录
+        function logout() {
+            currentToken = '';
+            document.getElementById('userInfo').classList.add('hidden');
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('appSection').classList.add('hidden');
+        }
+
+        // 创建聊天室
+        async function createChatroom() {
+            const name = document.getElementById('chatroomName').value;
+            const theme = document.getElementById('chatroomTheme').value;
+
+            if (!name) {
+                showResult('chatroomResult', '请填写聊天室名称', false);
+                return;
+            }
+
+            const { data } = await apiRequest('/api/chatrooms', {
+                method: 'POST',
+                body: JSON.stringify({ name, theme: theme || null })
+            });
+
+            if (data.success) {
+                showResult('chatroomResult', '聊天室创建成功！', true);
+                document.getElementById('chatroomName').value = '';
+                document.getElementById('chatroomTheme').value = '';
+                loadChatrooms();
+            } else {
+                showResult('chatroomResult', `创建失败: ${data.error?.message || '未知错误'}`, false);
+            }
+        }
+
+        // 加载聊天室列表
+        async function loadChatrooms() {
+            const { data } = await apiRequest('/api/chatrooms');
+            
+            if (data.success) {
+                const chatrooms = data.data.chatRooms;
+                const listHtml = chatrooms.length > 0 
+                    ? chatrooms.map(room => `
+                        <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px;">
+                            <strong>${room.name}</strong>
+                            ${room.theme ? `<br><small>主题: ${room.theme}</small>` : ''}
+                            <br><small>创建时间: ${new Date(room.created_at).toLocaleString()}</small>
+                            <br><small>消息数: ${room._count?.messages || 0}</small>
+                        </div>
+                    `).join('')
+                    : '<p>暂无聊天室</p>';
+                
+                document.getElementById('chatroomList').innerHTML = listHtml;
+            }
+        }
+
+        // 上传角色
+        async function uploadCharacter() {
+            const fileInput = document.getElementById('characterFile');
+            const theme = document.getElementById('characterTheme').value;
+
+            if (!fileInput.files.length) {
+                showResult('characterResult', '请选择角色文件', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('theme', theme || 'default');
+
+            const { data } = await fetch(API_BASE + '/api/characters', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: formData
+            }).then(response => response.json());
+
+            if (data.success) {
+                showResult('characterResult', '角色上传成功！', true);
+                document.getElementById('characterFile').value = '';
+                document.getElementById('characterTheme').value = '';
+                loadCharacters();
+            } else {
+                showResult('characterResult', `上传失败: ${data.error?.message || '未知错误'}`, false);
+            }
+        }
+
+        // 加载角色列表
+        async function loadCharacters() {
+            const { data } = await apiRequest('/api/characters');
+            
+            if (data.success) {
+                const characters = data.data.characters;
+                const listHtml = characters.length > 0 
+                    ? characters.map(char => `
+                        <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px;">
+                            <strong>${char.name}</strong>
+                            ${char.theme ? `<br><small>主题: ${char.theme}</small>` : ''}
+                            <br><small>分类: ${char.category}</small>
+                            <br><small>创建时间: ${new Date(char.created_at).toLocaleString()}</small>
+                        </div>
+                    `).join('')
+                    : '<p>暂无角色</p>';
+                
+                document.getElementById('characterList').innerHTML = listHtml;
+            }
+        }
+
+        // 更新个人资料
+        async function updateProfile() {
+            const name = document.getElementById('profileName').value;
+            const avatar = document.getElementById('profileAvatar').value;
+
+            const { data } = await apiRequest('/api/users/me', {
+                method: 'PUT',
+                body: JSON.stringify({ name, avatar: avatar || null })
+            });
+
+            if (data.success) {
+                showResult('profileResult', '个人资料更新成功！', true);
+                showUserInfo();
+            } else {
+                showResult('profileResult', `更新失败: ${data.error?.message || '未知错误'}`, false);
+            }
+        }
+
+        // 删除账户
+        async function deleteAccount() {
+            if (!confirm('确定要删除账户吗？此操作不可恢复！')) {
+                return;
+            }
+
+            const { data } = await apiRequest('/api/users/me', {
+                method: 'DELETE'
+            });
+
+            if (data.success) {
+                alert('账户删除成功！');
+                logout();
+            } else {
+                alert(`删除失败: ${data.error?.message || '未知错误'}`);
+            }
+        }
+
+        // 页面加载时检查健康状态
+        window.onload = async function() {
+            const { data } = await apiRequest('/api/health');
+            
+            if (data.success) {
+                console.log('✅ 服务器连接正常');
+            } else {
+                alert('❌ 服务器连接失败，请确保服务器正在运行');
+            }
+        };
+    </script>
+</body>
+</html>

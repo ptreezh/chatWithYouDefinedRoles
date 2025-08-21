@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat4 多用户功能测试 - 快速访问</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        .button {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        .button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        .button.secondary {
+            background: #28a745;
+        }
+        .button.secondary:hover {
+            background: #1e7e34;
+        }
+        .instructions {
+            text-align: left;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .instructions h3 {
+            color: #495057;
+            margin-top: 0;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+            color: #6c757d;
+        }
+        .server-info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Chat4 多用户测试</h1>
+        
+        <div class="status success">
+            ✅ 服务器已启动并运行在 <strong>127.0.0.1:4000</strong>
+        </div>
+        
+        <div class="server-info">
+            <strong>API服务器：</strong> http://127.0.0.1:4000<br>
+            <strong>健康检查：</strong> <a href="http://127.0.0.1:4000/api/health" target="_blank">http://127.0.0.1:4000/api/health</a>
+        </div>
+        
+        <div class="instructions">
+            <h3>🎯 如何体验多用户功能：</h3>
+            <ol>
+                <li>点击下方按钮打开完整测试页面</li>
+                <li>注册第一个用户（例如：user1@example.com）</li>
+                <li>注册第二个用户（例如：user2@example.com）</li>
+                <li>分别登录两个用户</li>
+                <li>为每个用户创建聊天室和角色</li>
+                <li>验证数据隔离功能</li>
+            </ol>
+        </div>
+        
+        <div class="status info">
+            💡 这是一个内存演示服务器，重启后数据会丢失<br>
+            🔒 密码验证已简化，任何密码都可以登录
+        </div>
+        
+        <a href="test-multiuser.html" class="button">🚀 开始测试</a>
+        <a href="http://127.0.0.1:4000/api/health" target="_blank" class="button secondary">🔍 检查服务器状态</a>
+        
+        <div style="margin-top: 30px; font-size: 0.9em; color: #6c757d;">
+            <p>📱 支持的浏览器：Chrome、Firefox、Safari、Edge</p>
+            <p>🔧 技术栈：Node.js + 内存数据库 + JWT认证</p>
+        </div>
+    </div>
+    
+    <script>
+        // 自动检查服务器状态
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('http://127.0.0.1:4000/api/health');
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    console.log('✅ 服务器连接正常');
+                } else {
+                    console.log('❌ 服务器状态异常');
+                }
+            } catch (error) {
+                console.log('❌ 无法连接到服务器');
+                alert('无法连接到服务器，请确保服务器正在运行在 127.0.0.1:4000');
+            }
+        }
+        
+        // 页面加载时检查服务器状态
+        window.onload = checkServerStatus;
+    </script>
+</body>
+</html>

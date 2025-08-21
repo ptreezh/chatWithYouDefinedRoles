@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-08-21T02:45:05.121Z",
+  "testTheme": "test-theme-1755744305095",
+  "summary": {
+    "totalTests": 1,
+    "passedTests": 0,
+    "failedTests": 1
+  },
+  "details": {
+    "ollamaConnection": {
+      "name": "Ollama连接测试",
+      "success": false
+    }
+  },
+  "chatResults": [],
+  "environment": {
+    "nodeVersion": "v22.14.0",
+    "platform": "win32",
+    "arch": "x64"
+  }
+}
